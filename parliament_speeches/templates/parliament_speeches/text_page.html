@@ -1,0 +1,141 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ page|localized_title:current_language }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ page|localized_title:current_language }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ page|localized_content:current_language|truncatewords:30|striptags }}">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ page|localized_title:current_language }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ page|localized_content:current_language|truncatewords:30|striptags }}">{% endblock %}
+
+{% block extra_css %}
+<style>
+    .text-page-content {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #444;
+    }
+    
+    .text-page-content h1,
+    .text-page-content h2,
+    .text-page-content h3,
+    .text-page-content h4,
+    .text-page-content h5,
+    .text-page-content h6 {
+        color: var(--primary-color);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .text-page-content p {
+        margin-bottom: 1.5rem;
+        text-align: justify;
+    }
+    
+    .text-page-content ul,
+    .text-page-content ol {
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+    }
+    
+    .text-page-content li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .text-page-content blockquote {
+        border-left: 4px solid var(--primary-color);
+        background: #f8f9fa;
+        padding: 1rem 2rem;
+        margin: 2rem 0;
+        font-style: italic;
+    }
+    
+    .contact-info {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin: 2rem 0;
+        text-align: center;
+    }
+    
+    .contact-info h3 {
+        color: white !important;
+        margin-bottom: 1rem;
+    }
+    
+    .contact-info .phone {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin: 1rem 0;
+    }
+    
+    .alpha-notice {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 1rem;
+        border-radius: 5px;
+        margin: 2rem 0;
+    }
+    
+    .alpha-notice .fas {
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ page|localized_title:current_language }}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title mb-4">{{ page|localized_title:current_language }}</h1>
+                    
+                    <div class="text-page-content">
+                        {{ page|localized_content:current_language|markdown_to_html }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add meta description and keywords dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add meta description
+        const metaDescription = "{{ page|localized_meta_description:current_language|escapejs }}";
+        if (metaDescription) {
+            const metaDesc = document.createElement('meta');
+            metaDesc.name = 'description';
+            metaDesc.content = metaDescription;
+            document.head.appendChild(metaDesc);
+        }
+        
+        // Add meta keywords
+        const metaKeywords = "{{ page|localized_keywords:current_language|escapejs }}";
+        if (metaKeywords) {
+            const metaKeys = document.createElement('meta');
+            metaKeys.name = 'keywords';
+            metaKeys.content = metaKeywords;
+            document.head.appendChild(metaKeys);
+        }
+    });
+</script>
+{% endblock %}

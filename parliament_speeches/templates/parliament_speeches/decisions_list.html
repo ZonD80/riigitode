@@ -1,0 +1,223 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ t.PARLIAMENT_DECISIONS }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}website{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ t.PARLIAMENT_DECISIONS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.BROWSE_DECISIONS_DESC }} {{ page_obj.paginator.count }} {{ t.PARLIAMENT_DECISIONS|lower }}.">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ t.PARLIAMENT_DECISIONS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.BROWSE_DECISIONS_DESC }} {{ page_obj.paginator.count }} {{ t.PARLIAMENT_DECISIONS|lower }}.">{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item active">{{ t.PARLIAMENT_DECISIONS }}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="fas fa-gavel me-2"></i>{{ t.PARLIAMENT_DECISIONS }}</h1>
+            <p class="lead text-muted">{{ t.BROWSE_DECISIONS_DESC }}</p>
+        </div>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="search-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">{{ t.SEARCH_DECISIONS }}</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="{{ t.ENTER_SEARCH_TERMS_DECISIONS }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">{{ t.FROM_DATE }}</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">{{ t.TO_DATE }}</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ date_to }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>{{ t.SEARCH }}
+                </button>
+            </div>
+        </form>
+        {% if search_query or date_from or date_to %}
+            <div class="mt-3">
+                <a href="{% url 'decisions_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>{{ t.CLEAR_FILTERS }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Results -->
+    {% if page_obj %}
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted mb-3">
+                    {{ t.SHOWING_DECISIONS_BY_DATE }} ({{ total_decisions }} {{ t.DECISIONS_TOTAL }})
+                </p>
+            </div>
+        </div>
+
+        {% for date, agendas_for_date, total_decisions_for_date, num_agendas in page_obj %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar me-2"></i>
+                                {{ date|date:"l, F j, Y" }}
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-light text-dark">
+                                {{ total_decisions_for_date }} {{ t.DECISIONS }} {{ t.ACROSS }} {{ num_agendas }} {{ t.AGENDAS }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for agenda_item, decisions in agendas_for_date %}
+                        <!-- Agenda Item Header -->
+                        <div class="agenda-header mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--primary-color); border-radius: 0 8px 8px 0;">
+                            <h6 class="mb-2">
+                                <a href="{% url 'agenda_detail' agenda_item.pk %}" class="text-decoration-none">
+                                    <i class="fas fa-clipboard-list me-1"></i>
+                                    {% localized_title_tag agenda_item %}
+                                </a>
+                                {% if agenda_item.is_incomplete %}
+                                    <span class="badge bg-warning text-dark ms-2" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                                    </span>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-building me-1"></i>
+                                {% localized_title_tag agenda_item.plenary_session %}
+                                <span class="ms-3">
+                                    <i class="fas fa-gavel me-1"></i>
+                                    {{ decisions|length }} {{ t.DECISIONS }}
+                                </span>
+                            </small>
+                        </div>
+                        
+                        <!-- Decisions for this agenda -->
+                        {% for decision in decisions %}
+                            <div class="decision-item mb-3 ms-3">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="decision-text mb-2">
+                                            <strong>{{ t.DECISION }}:</strong>
+                                            {{ decision|localized_decision:current_language }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        {% if decision.politician %}
+                                            <div class="mb-2">
+                                                <span class="badge bg-info">{{ t.INDIVIDUAL_DECISION }}</span>
+                                            </div>
+                                            <div class="politician-info">
+                                                <a href="{% url 'politician_detail' decision.politician.pk %}" class="text-decoration-none">
+                                                    {% if decision.politician.photo %}
+                                                        <img src="{{ decision.politician.photo.url }}" 
+                                                             alt="{{ decision.politician.full_name }}"
+                                                             class="rounded-circle me-2" 
+                                                             style="width: 30px; height: 30px; object-fit: cover;">
+                                                    {% else %}
+                                                        <i class="fas fa-user-circle me-2" style="font-size: 30px; color: #6c757d;"></i>
+                                                    {% endif %}
+                                                    <strong>{{ decision.politician.full_name }}</strong>
+                                                </a>
+                                            </div>
+                                        {% else %}
+                                            <div class="mb-2">
+                                                <span class="badge bg-success">{{ t.COLLECTIVE_DECISION }}</span>
+                                            </div>
+                                            <div class="collective-info">
+                                                <i class="fas fa-users me-2"></i>
+                                                <strong>{{ t.PARLIAMENT_COLLECTIVE }}</strong>
+                                            </div>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ decision.created_at|date:"H:i" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if not forloop.last %}
+                                <hr class="my-2 ms-3" style="border-color: #e9ecef;">
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if not forloop.last %}
+                            <hr class="my-4" style="border-color: #dee2e6; border-width: 2px;">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-chevron-left me-1"></i>{{ t.PREVIOUS }}
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                {{ t.NEXT }}<i class="fas fa-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h4>{{ t.NO_DECISIONS_FOUND }}</h4>
+                    <p>{{ t.TRY_ADJUSTING_CRITERIA }}</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

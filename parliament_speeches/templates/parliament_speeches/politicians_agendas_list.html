@@ -1,0 +1,241 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ t.POLITICIANS_AGENDAS }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}website{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ t.POLITICIANS_AGENDAS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.TRACK_POLITICIANS_DESC }} {{ t.EXPLORE_PARLIAMENT_DESC }}">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ t.POLITICIANS_AGENDAS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.TRACK_POLITICIANS_DESC }} {{ t.EXPLORE_PARLIAMENT_DESC }}">{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item active">{{ t.POLITICIANS_AGENDAS }}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="fas fa-users me-2"></i>{{ t.POLITICIANS_AGENDAS }}</h1>
+            <p class="lead text-muted">{{ t.TRACK_POLITICIANS_DESC }}</p>
+        </div>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="search-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">{{ t.SEARCH_POLITICIANS }}</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="{{ t.ENTER_POLITICIAN_NAME }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">{{ t.FROM_DATE }}</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">{{ t.TO_DATE }}</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ date_to }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>{{ t.SEARCH }}
+                </button>
+            </div>
+        </form>
+        {% if search_query or date_from or date_to %}
+            <div class="mt-3">
+                <a href="{% url 'politicians_agendas_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>{{ t.CLEAR_FILTERS }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Results -->
+    {% if page_obj %}
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted mb-3">
+                    {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ page_obj.paginator.count }} {{ t.POLITICIANS_LOWER }}
+                </p>
+            </div>
+        </div>
+
+        {% for politician_data in page_obj %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-tie me-2"></i>
+                                {{ politician_data.politician.full_name }}
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-light text-dark">
+                                {{ politician_data.agendas.count }} {{ t.AGENDA_ITEMS_COUNT }}
+                            </span>
+                            {% if politician_data.ai_summaries_count is not None %}
+                                <br><small class="text-success">
+                                    {{ politician_data.ai_summaries_count }}/{{ politician_data.agendas.count }} {{ t.WITH_AI_SUMMARIES }} 
+                                    ({{ politician_data.ai_summaries_percentage }}%)
+                                </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>{{ t.POLITICIANS }}:</strong> {{ politician_data.politician.full_name }}<br>
+                            {% if politician_data.politician.email %}
+                                <strong>{{ t.EMAIL }}:</strong> {{ politician_data.politician.email }}<br>
+                            {% endif %}
+                            {% if politician_data.politician.gender %}
+                                <strong>{{ t.GENDER }}:</strong> {{ politician_data.politician.gender }}<br>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>{{ t.ACTIVE }}:</strong> 
+                            {% if politician_data.politician.active %}
+                                <span class="badge bg-success">{{ t.YES }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ t.NO }}</span>
+                            {% endif %}
+                            <br>
+                            {% if politician_data.politician.parliament_seniority %}
+                                <strong>{{ t.PARLIAMENT_SENIORITY }}:</strong> {{ politician_data.politician.parliament_seniority }} {{ t.YEARS }}<br>
+                            {% endif %}
+                            {% if politician_data.politician.formatted_total_time %}
+                                <strong>{{ t.TOTAL_SPEAKING_TIME }}:</strong> 
+                                <span class="text-primary">
+                                    <i class="fas fa-clock me-1"></i>{{ politician_data.politician.formatted_total_time }}
+                                </span><br>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if politician_data.agendas %}
+                        <h6>{{ t.AGENDA_ITEMS }}:</h6>
+                        <div class="row">
+                            {% for agenda_item in politician_data.agendas|slice:":5" %}
+                                <div class="col-12 mb-2">
+                                    <div class="politician-card">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <a href="{% url 'agenda_detail' agenda_item.pk %}" 
+                                                       class="text-decoration-none">
+                                                        {% localized_title_tag agenda_item %}
+                                                    </a>
+                                                    {% if agenda_item.is_incomplete %}
+                                                        <span class="badge bg-warning text-dark ms-1" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                                                        </span>
+                                                    {% endif %}
+                                                </h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    {{ agenda_item.date|date:"Y-m-d H:i" }}
+                                                    <br>
+                                                    <i class="fas fa-building me-1"></i>
+                                                    {% localized_title_tag agenda_item.plenary_session %}
+                                                    {% if agenda_item.politician_speech_count > 0 %}
+                                                        <br>
+                                                        <i class="fas fa-microphone me-1"></i>
+                                                        {{ agenda_item.politician_speech_count }} {{ t.SPEECHES_COUNT }} {{ t.BY_THIS_POLITICIAN }}
+                                                        {% if agenda_item.politician_speaking_time_formatted %}
+                                                            <br>
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            <span class="text-info">{{ t.AGENDA_DURATION }}: {{ agenda_item.politician_speaking_time_formatted }}</span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="ms-3">
+                                                <a href="{% url 'agenda_detail' agenda_item.pk %}?politician={{ politician_data.politician.pk }}" 
+                                                   class="btn btn-outline-info btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>{{ t.VIEW }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% if agenda_item.structured_summary %}
+                                            <div class="mt-2 p-2 bg-light border-start border-success border-3">
+                                                <small class="text-success" style="white-space: pre-wrap;">
+                                                    <strong>{{ t.AI_SUMMARY }}:</strong> {% localized_ai_summary_tag agenda_item %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            {% if politician_data.agendas.count > 5 %}
+                                <div class="col-12">
+                                    <p class="text-muted text-center">
+                                        <small>... and {{ politician_data.agendas.count|add:"-5" }} more {{ t.AGENDA_ITEMS_COUNT }}</small>
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">{{ t.NO_AGENDA_ITEMS }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Politicians pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i> {{ t.PREVIOUS }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                {{ t.NEXT }} <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_POLITICIANS_FOUND }}</h3>
+            <p class="text-muted">{{ t.TRY_ADJUSTING_CRITERIA }}</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

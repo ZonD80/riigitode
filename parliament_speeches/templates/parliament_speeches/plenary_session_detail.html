@@ -1,0 +1,344 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{% localized_title_tag session %} - {{ t.SITE_NAME %}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{% localized_title_tag session %} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ session.date|date:"Y-m-d" }}. {{ total_agenda_items }} {{ t.AGENDA_ITEMS }}, {{ agenda_items_with_ai_summary }} {{ t.AI_SUMMARIES }} ({{ session_ai_percentage }}% {{ t.AI_COVERAGE }}).">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{% localized_title_tag session %} - {{ t.SITE_NAME %}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ session.date|date:"Y-m-d" }}. {{ total_agenda_items }} {{ t.AGENDA_ITEMS }}, {{ agenda_items_with_ai_summary }} {{ t.AI_SUMMARIES }} ({{ session_ai_percentage }}% {{ t.AI_COVERAGE }}).">{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'plenary_sessions_list' %}">{{ t.PLENARY_SESSIONS }}</a></li>
+            <li class="breadcrumb-item active">{% localized_title_tag session %}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1>
+                        <i class="fas fa-calendar-alt me-2"></i>{% localized_title_tag session %}
+                        {% if session.is_incomplete %}
+                            <span class="badge bg-warning text-dark ms-2" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                            </span>
+                        {% endif %}
+                    </h1>
+                    <p class="lead text-muted">{{ session.date|date:"Y-m-d H:i" }}</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-primary fs-6">{{ t.MEMBERSHIP }}: {{ session.membership }}</span><br>
+                    <span class="badge bg-secondary fs-6 mt-1">{{ t.SESSION }}: {{ session.plenary_session }}</span><br>
+                    {% if session.edited %}
+                        <span class="badge bg-success fs-6 mt-1">{{ t.EDITED }}: {{ t.YES }}</span>
+                    {% else %}
+                        <span class="badge bg-warning fs-6 mt-1">{{ t.EDITED }}: {{ t.NO }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-list fa-2x mb-2"></i>
+                    <h5>{{ total_agenda_items }}</h5>
+                    <p class="mb-0">{{ t.AGENDA_ITEMS }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5>{{ agenda_items_with_ai_summary }}/{{ total_agenda_items }}</h5>
+                    <p class="mb-0">{{ t.AI_SUMMARIES }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                    <h5>{{ session_ai_percentage }}%</h5>
+                    <p class="mb-0">{{ t.AI_COVERAGE }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Translation Completion Statistics -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-10">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-language fa-2x mb-2"></i>
+                    <h4>{{ t.TRANSLATION_COMPLETION }}</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>{{ t.ENGLISH_TRANSLATIONS }}</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="mb-2">
+                                        <strong>{{ t.AGENDA_ITEMS }}</strong><br>
+                                        <span class="fs-5">{{ session_translation_stats.agendas_title_en_count }}/{{ session_translation_stats.total_agenda_items }}</span><br>
+                                        <small>{{ t.TITLES_TRANSLATED }} ({{ session_translation_stats.agendas_title_en_percentage }}%)</small>
+                                    </div>
+                                    <div>
+                                        <span class="fs-5">{{ session_translation_stats.agendas_ai_en_count }}/{{ agenda_items_with_ai_summary }}</span><br>
+                                        <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ session_translation_stats.agendas_ai_en_percentage }}%)</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="mb-2">
+                                        <strong>{{ t.SPEECHES }}</strong><br>
+                                        <span class="fs-5">{{ session_translation_stats.speeches_ai_en_count }}/{{ session_translation_stats.speeches_with_ai }}</span><br>
+                                        <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ session_translation_stats.speeches_ai_en_percentage }}%)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>{{ t.RUSSIAN_TRANSLATIONS }}</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="mb-2">
+                                        <strong>{{ t.AGENDA_ITEMS }}</strong><br>
+                                        <span class="fs-5">{{ session_translation_stats.agendas_title_ru_count }}/{{ session_translation_stats.total_agenda_items }}</span><br>
+                                        <small>{{ t.TITLES_TRANSLATED }} ({{ session_translation_stats.agendas_title_ru_percentage }}%)</small>
+                                    </div>
+                                    <div>
+                                        <span class="fs-5">{{ session_translation_stats.agendas_ai_ru_count }}/{{ agenda_items_with_ai_summary }}</span><br>
+                                        <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ session_translation_stats.agendas_ai_ru_percentage }}%)</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="mb-2">
+                                        <strong>{{ t.SPEECHES }}</strong><br>
+                                        <span class="fs-5">{{ session_translation_stats.speeches_ai_ru_count }}/{{ session_translation_stats.speeches_with_ai }}</span><br>
+                                        <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ session_translation_stats.speeches_ai_ru_percentage }}%)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-form mb-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <label for="search" class="form-label">{{ t.SEARCH_AGENDA_ITEMS }}</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="{{ t.ENTER_SEARCH_TERMS }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>{{ t.SEARCH }}
+                </button>
+            </div>
+        </form>
+        {% if search_query %}
+            <div class="mt-3">
+                <a href="{% url 'plenary_session_detail' session.pk %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>{{ t.CLEAR_FILTERS }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Results -->
+    {% if page_obj %}
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted mb-3">
+                    {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ page_obj.paginator.count }} {{ t.AGENDA_ITEMS|lower }}
+                </p>
+            </div>
+        </div>
+
+        {% for agenda_item in page_obj %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <a href="{% url 'agenda_detail' agenda_item.pk %}" 
+                                   class="text-decoration-none">
+                                    {% localized_title_tag agenda_item %}
+                                </a>
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-primary">
+                                {{ agenda_item.date|date:"H:i" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {% if agenda_item.speeches_count > 0 %}
+                                <i class="fas fa-microphone me-1"></i>
+                                <strong>{{ t.SPEECHES }}:</strong> {{ agenda_item.speeches_count }}
+                                {% if agenda_item.speeches_with_ai > 0 %}
+                                    <br><small class="text-success">
+                                        {{ t.AI_SUMMARIES }}: {{ agenda_item.speeches_with_ai }}/{{ agenda_item.speeches_count }} 
+                                        ({{ agenda_item.speeches_ai_percentage }}%)
+                                    </small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">{{ t.NO_SPEECHES }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-end">
+                            {% if agenda_item.total_time_seconds %}
+                                <i class="fas fa-clock me-1"></i>
+                                <strong>{{ t.DURATION }}:</strong> {{ agenda_item.formatted_total_time }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Structured Analysis -->
+                    {% if agenda_item.structured_summary or agenda_item.structured_decisions %}
+                        <div class="structured-analysis-compact">
+                            <div class="row">
+                                <!-- Summary Column -->
+                                {% if agenda_item.structured_summary %}
+                                <div class="col-md-8">
+                                    <div class="summary-card p-3 bg-light border-start border-primary border-3">
+                                        <h6 class="text-primary mb-2">
+                                            <i class="fas fa-file-alt me-1"></i>{{ t.SUMMARY }}
+                                        </h6>
+                                        <div class="summary-text">
+                                            {{ agenda_item.structured_summary|localized_summary:current_language|truncatewords:50|linebreaks }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Decisions Column -->
+                                {% if agenda_item.structured_decisions %}
+                                <div class="col-md-4">
+                                    <div class="decisions-card p-3 bg-light border-start border-success border-3">
+                                        <h6 class="text-success mb-2">
+                                            <i class="fas fa-gavel me-1"></i>{{ t.DECISIONS }}
+                                            <span class="badge bg-success ms-2">{{ agenda_item.structured_decisions.count }}</span>
+                                        </h6>
+                                        <div class="decisions-list">
+                                            {% for decision in agenda_item.structured_decisions %}
+                                                <div class="decision-compact mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                                                    {% if decision.politician %}
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            {% if decision.politician.photo %}
+                                                                <img src="{{ decision.politician.photo.url }}" 
+                                                                     alt="{{ decision.politician.full_name }}"
+                                                                     class="rounded-circle me-2" 
+                                                                     style="width: 20px; height: 20px; object-fit: cover;">
+                                                            {% else %}
+                                                                <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center" 
+                                                                     style="width: 20px; height: 20px;">
+                                                                    <i class="fas fa-user text-white" style="font-size: 8px;"></i>
+                                                                </div>
+                                                            {% endif %}
+                                                            <small class="fw-bold">{{ decision.politician.full_name }}</small>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <div class="rounded-circle bg-warning me-2 d-flex align-items-center justify-content-center" 
+                                                                 style="width: 20px; height: 20px;">
+                                                                <i class="fas fa-users text-white" style="font-size: 8px;"></i>
+                                                            </div>
+                                                            <small class="fw-bold text-warning">{{ t.COLLECTIVE }}</small>
+                                                        </div>
+                                                    {% endif %}
+                                                    <small class="text-muted">{{ decision|localized_decision:current_language|truncatewords:15 }}</small>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- No analysis available -->
+                        <div class="p-3 bg-light border-start border-secondary border-3">
+                            <h6 class="text-secondary mb-2">
+                                <i class="fas fa-clock me-1"></i>{{ t.ANALYSIS }}
+                            </h6>
+                            <p class="mb-0 text-muted fst-italic">{{ t.WAS_NOT_ANALYZED_YET }}</p>
+                        </div>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <a href="{% url 'agenda_detail' agenda_item.pk %}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>{{ t.VIEW_DETAILS }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Agenda items pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i> {{ t.PREVIOUS }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                {{ t.NEXT }} <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_AGENDA_ITEMS_FOUND }}</h3>
+            <p class="text-muted">{{ t.TRY_ADJUSTING_SEARCH_CRITERIA }}</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

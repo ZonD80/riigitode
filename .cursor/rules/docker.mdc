@@ -1,0 +1,5 @@
+description: Use docker always
+globs:
+alwaysApply: true
+---
+Project is running in docker environment, use it for commands

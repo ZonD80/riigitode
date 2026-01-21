@@ -1,0 +1,213 @@
+{% extends 'parliament_speeches/base.html' %}
+
+{% block title %}{{ t.POLITICIANS }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}website{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ t.POLITICIANS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.TRACK_POLITICIANS_DESC }} {{ page_obj.paginator.count }} {{ t.POLITICIANS|lower }}.">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ t.POLITICIANS }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.TRACK_POLITICIANS_DESC }} {{ page_obj.paginator.count }} {{ t.POLITICIANS|lower }}.">{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item active">{{ t.POLITICIANS }}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="fas fa-users me-2"></i>{{ t.POLITICIANS }}</h1>
+            <p class="lead text-muted">{{ t.TRACK_POLITICIANS_DESC }}</p>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <label for="search" class="form-label">{{ t.SEARCH_POLITICIANS }}</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="{{ t.ENTER_POLITICIAN_NAME }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>{{ t.SEARCH }}
+                </button>
+            </div>
+        </form>
+        {% if search_query %}
+            <div class="mt-3">
+                <a href="{% url 'politicians_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>{{ t.CLEAR_SEARCH }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Results -->
+    {% if page_obj %}
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted mb-3">
+                    {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ page_obj.paginator.count }} {{ t.POLITICIANS_LOWER }}
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            {% for politician_data in page_obj %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-4">
+                                    {% if politician_data.politician.photo %}
+                                        <img src="{{ politician_data.politician.photo.url }}" 
+                                             alt="{{ politician_data.politician.full_name }}"
+                                             class="img-fluid rounded politician-photo">
+                                    {% else %}
+                                        <div class="politician-photo-placeholder">
+                                            <i class="fas fa-user fa-3x text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-8">
+                                    <h6 class="card-title mb-2">
+                                        <a href="{% url 'politician_detail' politician_data.politician.pk %}" 
+                                           class="text-decoration-none">
+                                            {{ politician_data.politician.full_name }}
+                                        </a>
+                                    </h6>
+                                    
+                                    <div class="politician-stats">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar-alt me-1"></i>
+                                            {{ politician_data.agenda_items_count }} {{ t.AGENDA_ITEMS_COUNT }}
+                                            <br>
+                                            <i class="fas fa-microphone me-1"></i>
+                                            {{ politician_data.speeches_count }} {{ t.SPEECHES_COUNT }}
+                                            <br>
+                                            {% if politician_data.politician.formatted_total_time %}
+                                                <i class="fas fa-clock me-1"></i>
+                                                <span class="text-primary">{{ politician_data.politician.formatted_total_time }}</span>
+                                                <br>
+                                            {% endif %}
+                                            {% if politician_data.ai_summary_percentage > 0 %}
+                                                {{ politician_data.agendas_with_ai }}/{{ politician_data.agenda_items_count }} {{ t.WITH_AI_SUMMARIES }} 
+                                                ({{ politician_data.ai_summary_percentage }}%)
+                                                <br>
+                                            {% endif %}
+                                            {% if politician_data.politician.profiles_required > 0 %}
+                                                <i class="fas fa-user-cog me-1"></i>
+                                                {{ politician_data.politician.profiles_already_profiled }}/{{ politician_data.politician.profiles_required }} profiling 
+                                                ({{ politician_data.politician.profiling_percentage }}%)
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                {% if politician_data.politician.gender %}
+                                    <span class="badge bg-light text-dark me-1">{{ politician_data.politician.gender }}</span>
+                                {% endif %}
+                                {% if politician_data.politician.parliament_seniority %}
+                                    <span class="badge bg-info text-white me-1">{{ politician_data.politician.parliament_seniority }} {{ t.YEARS }}</span>
+                                {% endif %}
+                                <span class="badge bg-success">{{ t.ACTIVE }}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'politician_detail' politician_data.politician.pk %}" 
+                               class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-eye me-1"></i>{{ t.VIEW_DETAILS }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Politicians pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i> {{ t.PREVIOUS }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                {{ t.NEXT }} <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_POLITICIANS_FOUND }}</h3>
+            <p class="text-muted">{{ t.TRY_ADJUSTING_CRITERIA }}</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.politician-photo {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+}
+
+.politician-photo-placeholder {
+    width: 80px;
+    height: 80px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+}
+
+.politician-stats {
+    font-size: 0.85rem;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

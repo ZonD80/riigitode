@@ -1,0 +1,1125 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{% localized_title_tag agenda_item %} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{% localized_title_tag agenda_item %} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ agenda_item.date|date:"Y-m-d H:i" }} - {% localized_title_tag agenda_item.plenary_session %}. {% if agenda_item.speeches_count %}{{ agenda_item.speeches_count }} {{ t.SPEECHES }}{% if agenda_item.total_time_seconds %}, {{ t.DURATION }}: {{ agenda_item.formatted_total_time }}{% endif %}.{% endif %}">{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block meta_twitter_title %}<meta name="twitter:title" content="{% localized_title_tag agenda_item %} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ agenda_item.date|date:"Y-m-d H:i" }} - {% localized_title_tag agenda_item.plenary_session %}. {% if agenda_item.speeches_count %}{{ agenda_item.speeches_count }} {{ t.SPEECHES }}{% if agenda_item.total_time_seconds %}, {{ t.DURATION }}: {{ agenda_item.formatted_total_time }}{% endif %}.{% endif %}">{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'plenary_sessions_list' %}">{{ t.PLENARY_SESSIONS }}</a></li>
+            <li class="breadcrumb-item active">{% localized_title_tag agenda_item %}</li>
+        </ol>
+    </nav>
+
+    <!-- Agenda Header -->
+    <div class="agenda-header card mb-4">
+        <div class="card-body">
+            <h1 class="card-title mb-3">
+                {% localized_title_tag agenda_item %}
+                {% if agenda_item.is_incomplete %}
+                    <span class="badge bg-warning text-dark ms-2" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                        <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                    </span>
+                {% endif %}
+            </h1>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>{{ t.SESSION }}:</strong> {% localized_title_tag agenda_item.plenary_session %}</p>
+                    <p class="mb-1"><strong>{{ t.DATE }}:</strong> {{ agenda_item.date|date:"Y-m-d H:i" }}</p>
+                    
+                    <!-- Participating Politicians Photos -->
+                    {% if participating_politicians %}
+                        <div class="participating-politicians mt-3">
+                            <p class="mb-2"><strong>{{ t.PARTICIPATING_POLITICIANS }}:</strong></p>
+                            <div class="politicians-photos d-flex flex-wrap gap-2">
+                                {% for politician in participating_politicians %}
+                                    <div class="politician-photo-container" title="{{ politician.full_name }}">
+                                        <a href="{% url 'politician_detail' politician.pk %}" class="text-decoration-none">
+                                            {% if politician.photo %}
+                                                <img src="{{ politician.photo.url }}" 
+                                                     alt="{{ politician.full_name }}"
+                                                     class="rounded-circle participating-politician-photo">
+                                            {% else %}
+                                                <div class="participating-politician-photo-placeholder rounded-circle">
+                                                    <i class="fas fa-user text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div class="politician-name-tooltip">{{ politician.full_name }}</div>
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>{{ t.TOTAL_SPEECHES }}:</strong> {{ total_speeches }}</p>
+                    <p class="mb-1"><strong>{{ t.MEMBERSHIP }}:</strong> {{ agenda_item.plenary_session.membership }}</p>
+                    {% if agenda_item.formatted_total_time %}
+                        <p class="mb-1">
+                            <strong>{{ t.AGENDA_DURATION }}:</strong> 
+                            <span class="text-info">
+                                <i class="fas fa-clock me-1"></i>{{ agenda_item.formatted_total_time }}
+                            </span>
+                        </p>
+                    {% endif %}
+                    {% if total_speeches > 0 %}
+                        <p class="mb-1">
+                            <strong>{{ t.AI_SUMMARIES }}:</strong> 
+                            <span class="text-success">
+                                {{ speeches_with_ai }}/{{ total_speeches }} {{ t.SPEECHES }} ({{ speeches_ai_percentage }}%)
+                            </span>
+                        </p>
+                    {% endif %}
+                    {% if agenda_summary or agenda_item.structured_summary %}
+                        <p class="mb-1">
+                            <strong>Analysis:</strong> 
+                            {% if agenda_summary %}
+                                <span class="text-primary">
+                                    <i class="fas fa-file-alt me-1"></i>Structured Analysis
+                                </span>
+                            {% else %}
+                                <span class="text-info">
+                                    <i class="fas fa-robot me-1"></i>{{ t.AGENDA_AI_SUMMARY }}
+                                </span>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Politicians Speaking Time Pie Chart -->
+    {% if politician_speaking_data %}
+        <div class="speaking-time-chart card mb-4">
+            <div class="card-body">
+                <h3 class="card-title text-info mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>{{ t.POLITICIANS_SPEAKING_TIME }}
+                </h3>
+                <div class="row">
+                    <div class="col-md-8">
+                        <canvas id="speakingTimeChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chart-legend">
+                            <h6 class="mb-3">{{ t.POLITICIANS }}</h6>
+                            <div id="chartLegend" class="legend-items">
+                                <!-- Legend will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Structured Analysis Cards -->
+    <div class="structured-analysis-section mb-4">
+        <h2 class="section-title text-primary mb-4">
+            {{ t.ANALYSIS }}
+        </h2>
+        
+        {% if agenda_summary or agenda_decisions or active_politician %}
+            <div class="row">
+                <!-- Summary Card -->
+                {% if agenda_summary %}
+                <div class="col-lg-4 mb-4">
+                    <div class="analysis-card card h-100 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-file-alt me-2"></i>{{ t.SUMMARY }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="summary-content">
+                                {% localized_summary_tag agenda_summary %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Decisions Card -->
+                {% if agenda_decisions %}
+                <div class="col-lg-4 mb-4">
+                    <div class="analysis-card card h-100 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-gavel me-2"></i>{{ t.DECISIONS_MADE }}
+                                <span class="badge bg-light text-success ms-2">{{ agenda_decisions.count }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if agenda_decisions.0.is_incomplete %}
+                                <div class="alert alert-warning mb-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>{{ t.INCOMPLETE }}:</strong> {{ t.INCOMPLETE_SUMMARY }}
+                                </div>
+                            {% endif %}
+                            {% for decision in agenda_decisions %}
+                                <div class="decision-item mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                    <div class="decision-header mb-2">
+                                        {% if decision.politician %}
+                                            <div class="d-flex align-items-center">
+                                                {% if decision.politician.photo %}
+                                                    <img src="{{ decision.politician.photo.url }}" 
+                                                         alt="{{ decision.politician.full_name }}"
+                                                         class="rounded-circle me-2" 
+                                                         style="width: 30px; height: 30px; object-fit: cover;">
+                                                {% else %}
+                                                    <div class="rounded-circle bg-light me-2 d-flex align-items-center justify-content-center" 
+                                                         style="width: 30px; height: 30px;">
+                                                        <i class="fas fa-user text-muted" style="font-size: 14px;"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <a href="{% url 'politician_detail' decision.politician.pk %}" 
+                                                       class="text-decoration-none">
+                                                        <strong>{{ decision.politician.full_name }}</strong>
+                                                    </a>
+                                                    {% if decision.politician.current_faction %}
+                                                        <small class="text-muted d-block">{{ decision.politician.current_faction.name }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-warning me-2 d-flex align-items-center justify-content-center" 
+                                                     style="width: 30px; height: 30px;">
+                                                    <i class="fas fa-users text-white" style="font-size: 14px;"></i>
+                                                </div>
+                                                <strong class="text-warning">{{ t.COLLECTIVE_DECISION }}</strong>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="decision-text">
+                                        {% localized_decision_tag decision %}
+                                    </div>
+
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Active Politician Card -->
+                {% if active_politician and active_politician.politician %}
+                <div class="col-lg-4 mb-4">
+                    <div class="analysis-card card h-100 border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-star me-2"></i>{{ t.MOST_ACTIVE_SPEAKER }}
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            {% if active_politician.is_incomplete %}
+                                <div class="alert alert-warning mb-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>{{ t.INCOMPLETE }}:</strong> {{ t.INCOMPLETE_SUMMARY }}
+                                </div>
+                            {% endif %}
+                            <div class="politician-profile mb-3">
+                                {% if active_politician.politician.photo %}
+                                    <img src="{{ active_politician.politician.photo.url }}" 
+                                         alt="{{ active_politician.politician.full_name }}"
+                                         class="rounded-circle mb-3" 
+                                         style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #17a2b8;">
+                                {% else %}
+                                    <div class="rounded-circle bg-light mb-3 mx-auto d-flex align-items-center justify-content-center" 
+                                         style="width: 80px; height: 80px; border: 3px solid #17a2b8;">
+                                        <i class="fas fa-user text-muted" style="font-size: 30px;"></i>
+                                    </div>
+                                {% endif %}
+                                
+                                <h6 class="mb-2">
+                                    <a href="{% url 'politician_detail' active_politician.politician.pk %}" 
+                                       class="text-decoration-none">
+                                        {{ active_politician.politician.full_name }}
+                                    </a>
+                                </h6>
+                                
+                                {% if active_politician.politician.current_faction %}
+                                    <p class="text-muted mb-3">
+                                        <i class="fas fa-users me-1"></i>{{ active_politician.politician.current_faction.name }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="activity-description text-start">
+                                {% localized_activity_tag active_politician %}
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'agenda_detail' agenda_item.pk %}?politician={{ active_politician.politician.pk }}" 
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-search me-1"></i>{{ t.VIEW_THEIR_SPEECHES }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <!-- No analysis available -->
+            <div class="p-3 bg-light border-start border-secondary border-3">
+                <h6 class="text-secondary mb-2">
+                    <i class="fas fa-clock me-1"></i>{{ t.ANALYSIS }}
+                </h6>
+                <p class="mb-0 text-muted fst-italic">{{ t.WAS_NOT_ANALYZED_YET }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Speeches Container -->
+    {% if speeches %}
+        <div class="speech-container">
+            <!-- Control Buttons -->
+            <div class="accordion-controls mb-3 text-end">
+                <button type="button" id="expandAllBtn" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-expand-arrows-alt me-1"></i>{{ t.EXPAND_ALL_TEXTS }}
+                </button>
+                <button type="button" id="collapseAllBtn" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-compress-arrows-alt me-1"></i>{{ t.COLLAPSE_ALL_TEXTS }}
+                </button>
+            </div>
+
+            {% for speech in speeches %}
+                <div class="speech-item card mb-3" id="speech-item-{{ speech.pk }}" data-politician-id="{{ speech.politician.pk|default:'' }}" data-speaker="{{ speech.speaker|slugify }}">
+                    <div class="card-body">
+                        <!-- Speech Header -->
+                        <div class="speech-header d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                {% if speech.politician %}
+                                    <a href="{% url 'politician_detail' speech.politician.pk %}" class="text-decoration-none">
+                                        <div class="politician-photo me-3">
+                                            {% if speech.politician.photo %}
+                                                <img src="{{ speech.politician.photo.url }}" 
+                                                     alt="{{ speech.politician.full_name }}"
+                                                     class="rounded-circle politician-small-photo">
+                                            {% else %}
+                                                <div class="politician-photo-placeholder-small rounded-circle">
+                                                    <i class="fas fa-user text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </a>
+                                {% endif %}
+                                <div>
+                                    {% if speech.politician %}
+                                        <a href="{% url 'politician_detail' speech.politician.pk %}" class="text-decoration-none">
+                                            <h5 class="speaker mb-1 text-dark">{{ speech.speaker }}</h5>
+                                        </a>
+                                        <a href="{% url 'politician_profiling_agenda_detail' speech.politician.pk 'ALL' agenda_item.pk %}" 
+                                           class="profiling-link text-decoration-none" 
+                                           title="View profiling">
+                                            <small class="text-primary">
+                                                <i class="fas fa-chart-line me-1"></i>{{ t.PROFILING }}
+                                            </small>
+                                        </a>
+                                        {% if speech.politician.current_faction %}
+                                            <small class="text-muted ms-2">
+                                                <i class="fas fa-users me-1"></i>{{ speech.politician.current_faction.name }}
+                                            </small>
+                                        {% else %}
+                                            <small class="text-muted ms-2">
+                                                <i class="fas fa-user me-1"></i>{{ t.INDEPENDENT }}
+                                            </small>
+                                        {% endif %}
+                                    {% else %}
+                                        <h5 class="speaker mb-1">{{ speech.speaker }}</h5>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="speech-meta text-muted">
+                                <small>
+                                    <i class="fas fa-clock me-1"></i>{{ speech.date|date:"H:i:s" }}
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Incomplete Speech Warning -->
+                        {% if speech.is_incomplete %}
+                            <div class="alert alert-warning mb-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>{{ t.INCOMPLETE }}:</strong> {{ t.INCOMPLETE_STENOGRAM }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Summary -->
+                        {% if speech.ai_summary %}
+                            <div class="ai-summary card mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-success mb-2">
+                                        {{ t.AI_SUMMARY }}
+                                    </h6>
+                                    <p class="mb-0 fst-italic">{% localized_ai_summary_tag speech %}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Speech Text Accordion -->
+                        <div class="speech-accordion">
+                            <button class="accordion-header" type="button" data-speech-id="{{ speech.pk }}" aria-expanded="false">
+                                <span class="accordion-title">
+                                    <i class="fas fa-file-alt me-2"></i>{{ t.FULL_SPEECH_TEXT }}
+                                </span>
+                                <span class="accordion-icon">▼</span>
+                            </button>
+                            <div class="accordion-content" id="speech-{{ speech.pk }}" style="display: none;">
+                                <div class="speech-text">
+                                    {{ speech.text }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Original Transcript Link -->
+                        {% if speech.link %}
+                            <div class="speech-link mt-3">
+                                <a href="{{ speech.link }}" target="_blank" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-external-link-alt me-1"></i>{{ t.ORIGINAL_TRANSCRIPT }}
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-microphone-slash fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_SPEECHES_FOUND }}</h3>
+            <p class="text-muted">{{ t.NO_SPEECHES_RECORDED }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{% url 'plenary_sessions_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>{{ t.BACK_TO_PLENARY_SESSIONS }}
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.politician-small-photo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    transition: transform 0.2s ease-in-out;
+}
+
+.politician-small-photo:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+}
+
+.politician-photo-placeholder-small {
+    width: 50px;
+    height: 50px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.speech-header .politician-photo {
+    flex-shrink: 0;
+}
+
+/* Enhance politician link styling */
+.speech-header small a:hover {
+    color: #007bff !important;
+    text-decoration: underline !important;
+}
+
+/* Clickable politician name styling */
+.speech-header a h5.speaker:hover {
+    color: #007bff !important;
+    text-decoration: underline !important;
+}
+
+/* Profiling link styling */
+.profiling-link {
+    display: inline-block;
+    margin-left: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.profiling-link:hover {
+    transform: translateY(-1px);
+}
+
+.profiling-link small {
+    transition: color 0.2s ease-in-out;
+}
+
+.profiling-link:hover small {
+    color: #0056b3 !important;
+    text-decoration: underline;
+}
+
+/* Ensure clickable politician photo has proper hover effect */
+.speech-header a .politician-photo {
+    transition: transform 0.2s ease-in-out;
+}
+
+.speech-header a:hover .politician-small-photo {
+    transform: scale(1.05);
+    border-color: #007bff;
+}
+
+.speech-header a:hover .politician-photo-placeholder-small {
+    transform: scale(1.05);
+    border-color: #007bff;
+}
+
+/* Participating Politicians Photos */
+.participating-politician-photo {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.participating-politician-photo:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.participating-politician-photo-placeholder {
+    width: 40px;
+    height: 40px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.participating-politician-photo-placeholder:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.politician-photo-container {
+    position: relative;
+}
+
+.politician-name-tooltip {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 10;
+}
+
+.politician-photo-container:hover .politician-name-tooltip {
+    opacity: 1;
+}
+
+/* Chart styles */
+.speaking-time-chart canvas {
+    max-height: 300px;
+}
+
+.legend-items {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.legend-item:hover {
+    background-color: #f8f9fa;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.legend-time {
+    font-size: 12px;
+    color: #6c757d;
+    margin-left: auto;
+}
+
+.legend-photo {
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.legend-politician-photo {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
+}
+
+.legend-politician-photo-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #6c757d;
+}
+
+/* Structured Analysis Cards */
+.structured-analysis-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.analysis-card {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-width: 2px !important;
+}
+
+.analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.analysis-card .card-header {
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.decision-item {
+    transition: background-color 0.2s ease;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin: -0.75rem;
+    margin-bottom: 1rem !important;
+}
+
+.decision-item:hover {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.decision-item:last-child {
+    margin-bottom: 0 !important;
+}
+
+.politician-profile img,
+.politician-profile .rounded-circle {
+    transition: all 0.3s ease;
+}
+
+.politician-profile:hover img,
+.politician-profile:hover .rounded-circle {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+}
+
+.activity-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .structured-analysis-section {
+        padding: 1.5rem;
+    }
+    
+    .analysis-card {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .structured-analysis-section {
+        padding: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize pie chart if data is available
+    {% if politician_speaking_data %}
+    initializeSpeakingTimeChart();
+    {% endif %}
+    
+    // Initialize accordion functionality
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    
+    accordionHeaders.forEach(function(header) {
+        header.addEventListener('click', function() {
+            const speechId = this.getAttribute('data-speech-id');
+            const content = document.getElementById('speech-' + speechId);
+            const icon = this.querySelector('.accordion-icon');
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            // Toggle the accordion
+            if (isExpanded) {
+                // Collapse
+                content.style.display = 'none';
+                this.setAttribute('aria-expanded', 'false');
+                this.style.borderRadius = '4px';
+            } else {
+                // Expand
+                content.style.display = 'block';
+                this.setAttribute('aria-expanded', 'true');
+                this.style.borderRadius = '4px 4px 0 0';
+            }
+        });
+        
+        // Initialize all accordions as collapsed
+        header.setAttribute('aria-expanded', 'false');
+    });
+    
+    // Expand all functionality
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', function() {
+            accordionHeaders.forEach(function(header) {
+                const speechId = header.getAttribute('data-speech-id');
+                const content = document.getElementById('speech-' + speechId);
+                content.style.display = 'block';
+                header.setAttribute('aria-expanded', 'true');
+                header.style.borderRadius = '4px 4px 0 0';
+            });
+        });
+    }
+    
+    // Collapse all functionality
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', function() {
+            accordionHeaders.forEach(function(header) {
+                const speechId = header.getAttribute('data-speech-id');
+                const content = document.getElementById('speech-' + speechId);
+                content.style.display = 'none';
+                header.setAttribute('aria-expanded', 'false');
+                header.style.borderRadius = '4px';
+            });
+        });
+    }
+    
+    // Scroll to politician's speeches if politician parameter is present
+    const urlParams = new URLSearchParams(window.location.search);
+    const politicianId = urlParams.get('politician');
+    
+    if (politicianId) {
+        // Find all speeches by this politician
+        const politicianSpeeches = document.querySelectorAll(`[data-politician-id="${politicianId}"]`);
+        
+        if (politicianSpeeches.length > 0) {
+            // Scroll to the first speech with smooth behavior
+            setTimeout(() => {
+                politicianSpeeches[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                
+                // Highlight all speeches by this politician
+                politicianSpeeches.forEach((speech, index) => {
+                    speech.style.boxShadow = '0 0 15px rgba(0, 123, 255, 0.4)';
+                    speech.style.border = '2px solid rgba(0, 123, 255, 0.6)';
+                    speech.style.transition = 'all 0.3s ease';
+                    
+                    // Add a badge to indicate this is the target politician
+                    if (index === 0) {
+                        const badge = document.createElement('div');
+                        badge.className = 'politician-highlight-badge';
+                        badge.innerHTML = `<i class="fas fa-user me-1"></i>{{ t.TARGET_POLITICIAN }} (${politicianSpeeches.length} speech${politicianSpeeches.length > 1 ? 'es' : ''})`;
+                        badge.style.cssText = `
+                            position: absolute;
+                            top: -10px;
+                            right: 10px;
+                            background: #007bff;
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 12px;
+                            font-size: 12px;
+                            font-weight: bold;
+                            z-index: 10;
+                        `;
+                        speech.style.position = 'relative';
+                        speech.appendChild(badge);
+                    }
+                });
+                
+                // Keep highlights permanently - don't remove them after timeout
+                
+                // Add navigation buttons for marked speeches
+                if (politicianSpeeches.length > 1) {
+                    addSpeechNavigationButtons(politicianSpeeches);
+                }
+            }, 500); // Small delay to ensure page is fully loaded
+        }
+    }
+    
+    // Speech navigation functionality
+    function addSpeechNavigationButtons(markedSpeeches) {
+        let currentSpeechIndex = 0;
+        
+        // Create navigation container
+        const navContainer = document.createElement('div');
+        navContainer.id = 'speech-navigation';
+        navContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        
+        // Create previous button
+        const prevButton = document.createElement('button');
+        prevButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
+        prevButton.title = '{{ t.PREVIOUS_MARKED_SPEECH }}';
+        prevButton.className = 'btn btn-primary btn-sm';
+        prevButton.style.cssText = `
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // Create next button
+        const nextButton = document.createElement('button');
+        nextButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        nextButton.title = '{{ t.NEXT_MARKED_SPEECH }}';
+        nextButton.className = 'btn btn-primary btn-sm';
+        nextButton.style.cssText = `
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // Create counter display
+        const counter = document.createElement('div');
+        counter.style.cssText = `
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        `;
+        
+        function updateCounter() {
+            counter.textContent = `${currentSpeechIndex + 1}/${markedSpeeches.length}`;
+        }
+        
+        function updateButtonStates() {
+            prevButton.disabled = currentSpeechIndex === 0;
+            nextButton.disabled = currentSpeechIndex === markedSpeeches.length - 1;
+            
+            if (prevButton.disabled) {
+                prevButton.style.opacity = '0.5';
+                prevButton.style.cursor = 'not-allowed';
+            } else {
+                prevButton.style.opacity = '1';
+                prevButton.style.cursor = 'pointer';
+            }
+            
+            if (nextButton.disabled) {
+                nextButton.style.opacity = '0.5';
+                nextButton.style.cursor = 'not-allowed';
+            } else {
+                nextButton.style.opacity = '1';
+                nextButton.style.cursor = 'pointer';
+            }
+        }
+        
+        function scrollToSpeech(index) {
+            if (index >= 0 && index < markedSpeeches.length) {
+                currentSpeechIndex = index;
+                markedSpeeches[index].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                updateCounter();
+                updateButtonStates();
+                
+                // Add temporary highlight to indicate current speech
+                markedSpeeches.forEach((speech, i) => {
+                    if (i === index) {
+                        speech.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                        setTimeout(() => {
+                            speech.style.backgroundColor = '';
+                        }, 1000);
+                    }
+                });
+            }
+        }
+        
+        // Button event listeners
+        prevButton.addEventListener('click', () => {
+            if (currentSpeechIndex > 0) {
+                scrollToSpeech(currentSpeechIndex - 1);
+            }
+        });
+        
+        nextButton.addEventListener('click', () => {
+            if (currentSpeechIndex < markedSpeeches.length - 1) {
+                scrollToSpeech(currentSpeechIndex + 1);
+            }
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName.toLowerCase() !== 'input' && e.target.tagName.toLowerCase() !== 'textarea') {
+                if (e.key === 'ArrowUp' && e.ctrlKey) {
+                    e.preventDefault();
+                    if (currentSpeechIndex > 0) {
+                        scrollToSpeech(currentSpeechIndex - 1);
+                    }
+                } else if (e.key === 'ArrowDown' && e.ctrlKey) {
+                    e.preventDefault();
+                    if (currentSpeechIndex < markedSpeeches.length - 1) {
+                        scrollToSpeech(currentSpeechIndex + 1);
+                    }
+                }
+            }
+        });
+        
+        // Assemble navigation
+        navContainer.appendChild(prevButton);
+        navContainer.appendChild(counter);
+        navContainer.appendChild(nextButton);
+        document.body.appendChild(navContainer);
+        
+        // Initialize
+        updateCounter();
+        updateButtonStates();
+        
+        // Auto-detect current speech based on scroll position
+        function detectCurrentSpeech() {
+            const viewportCenter = window.innerHeight / 2 + window.scrollY;
+            let closestIndex = 0;
+            let closestDistance = Math.abs(markedSpeeches[0].offsetTop - viewportCenter);
+            
+            for (let i = 1; i < markedSpeeches.length; i++) {
+                const distance = Math.abs(markedSpeeches[i].offsetTop - viewportCenter);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+            
+            if (closestIndex !== currentSpeechIndex) {
+                currentSpeechIndex = closestIndex;
+                updateCounter();
+                updateButtonStates();
+            }
+        }
+        
+        // Throttled scroll listener
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(detectCurrentSpeech, 100);
+        });
+    }
+    
+    // Pie chart initialization function
+    {% if politician_speaking_data %}
+    function initializeSpeakingTimeChart() {
+        const ctx = document.getElementById('speakingTimeChart').getContext('2d');
+        
+        // Prepare data for the chart
+        const chartData = [
+            {% for data in politician_speaking_data %}
+            {
+                name: "{{ data.politician.full_name|escapejs }}",
+                time: {{ data.speaking_time_seconds }},
+                timeFormatted: "{{ data.speaking_time_formatted|escapejs }}",
+                politicianId: {{ data.politician.pk }},
+                speechCount: {{ data.speech_count }},
+                photoUrl: "{% if data.politician.photo %}{{ data.politician.photo.url }}{% endif %}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Helper function to get politician photo HTML
+        function getPoliticianPhoto(politicianId) {
+            const politician = chartData.find(p => p.politicianId === politicianId);
+            if (politician && politician.photoUrl) {
+                return `<img src="${politician.photoUrl}" alt="${politician.name}" class="legend-politician-photo">`;
+            } else {
+                return `<div class="legend-politician-photo-placeholder"><i class="fas fa-user"></i></div>`;
+            }
+        }
+        
+        // Generate colors for the chart
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+        ];
+        
+        // Create the chart
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: chartData.map(item => item.name),
+                datasets: [{
+                    data: chartData.map(item => item.time),
+                    backgroundColor: colors.slice(0, chartData.length),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // We'll use custom legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const item = chartData[context.dataIndex];
+                                const percentage = ((item.time / chartData.reduce((sum, d) => sum + d.time, 0)) * 100).toFixed(1);
+                                return `${item.name}: ${item.timeFormatted} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const politicianId = chartData[index].politicianId;
+                        const currentUrl = new URL(window.location);
+                        currentUrl.searchParams.set('politician', politicianId);
+                        window.location.href = currentUrl.toString();
+                    }
+                }
+            }
+        });
+        
+        // Create custom legend
+        const legendContainer = document.getElementById('chartLegend');
+        chartData.forEach((item, index) => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.style.cursor = 'pointer';
+            
+            const percentage = ((item.time / chartData.reduce((sum, d) => sum + d.time, 0)) * 100).toFixed(1);
+            
+            // Find politician photo from the participating politicians data
+            const politicianPhoto = getPoliticianPhoto(item.politicianId);
+            
+            legendItem.innerHTML = `
+                <div class="legend-color" style="background-color: ${colors[index]}"></div>
+                <div class="legend-photo">${politicianPhoto}</div>
+                <div class="legend-text">${item.name}</div>
+                <div class="legend-time">${item.timeFormatted} (${percentage}%)</div>
+            `;
+            
+            // Add click handler to legend items - highlight politician on current page
+            legendItem.addEventListener('click', function() {
+                const currentUrl = new URL(window.location);
+                currentUrl.searchParams.set('politician', item.politicianId);
+                window.location.href = currentUrl.toString();
+            });
+            
+            // Add hover effect for chart segments
+            legendItem.addEventListener('mouseenter', function() {
+                chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                chart.update('none');
+            });
+            
+            legendItem.addEventListener('mouseleave', function() {
+                chart.setActiveElements([]);
+                chart.update('none');
+            });
+            
+            legendContainer.appendChild(legendItem);
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

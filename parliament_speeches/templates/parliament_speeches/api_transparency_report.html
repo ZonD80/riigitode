@@ -1,0 +1,267 @@
+{% extends "parliament_speeches/base.html" %}
+{% load localization %}
+
+{% block title %}{{ t.API_TRANSPARENCY_REPORT }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'api_transparency_report' %}">{{ t.TRANSPARENCY_AND_INTEGRITY }}</a></li>
+                    {% if year %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ year }}</li>
+                    {% endif %}
+                </ol>
+            </nav>
+            <h1 class="mb-3">
+                <i class="fas fa-shield-alt text-primary me-2"></i>
+                {{ t.TRANSPARENCY_AND_INTEGRITY }}{% if year %} - {{ year }}{% endif %}
+            </h1>
+            <p class="lead text-muted">
+                {{ t.PARSE_ERRORS }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="mb-0 text-primary">{{ total_errors }}</h3>
+                    <p class="text-muted mb-0">{{ t.TOTAL_ERRORS }}</p>
+                    {% if last_run_time %}
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-clock me-1"></i>{{ t.LAST_RUN }}: {{ last_run_time|date:"Y-m-d H:i" }}
+                    </small>
+                    {% endif %}
+                    {% if parse_date_range %}
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ t.FROM_DATE }}: {{ parse_date_range.start }}
+                    </small>
+                    <small class="text-muted d-block">
+                        <i class="fas fa-calendar-alt me-1"></i>{{ t.TO_DATE }}: {{ parse_date_range.end }}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ t.ERRORS_BY_TYPE }}</h5>
+                    <ul class="list-unstyled mb-0">
+                        {% for error_type, count in errors_by_type.items %}
+                        <li class="mb-1">
+                            <span class="badge bg-danger">{{ count }}</span>
+                            <small class="ms-2">{{ error_type }}</small>
+                        </li>
+                        {% empty %}
+                        <li class="text-muted">{{ t.NO_ERRORS_FOUND }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ t.ERRORS_BY_ENTITY }}</h5>
+                    <ul class="list-unstyled mb-0">
+                        {% for entity_type, count in errors_by_entity_type.items %}
+                        <li class="mb-1">
+                            <span class="badge bg-warning">{{ count }}</span>
+                            <small class="ms-2">{{ entity_type }}</small>
+                        </li>
+                        {% empty %}
+                        <li class="text-muted">{{ t.NO_ERRORS_FOUND }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                <i class="fas fa-filter me-2"></i>
+                {{ t.FILTER }}
+            </h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="error_type" class="form-label">{{ t.FILTER_BY_ERROR_TYPE }}</label>
+                    <select name="error_type" id="error_type" class="form-select">
+                        <option value="">{{ t.ALL_ERROR_TYPES }}</option>
+                        {% for error_type_code, error_type_name in available_error_types %}
+                        <option value="{{ error_type_code }}" {% if error_type_code == error_type_filter %}selected{% endif %}>
+                            {{ error_type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="entity_type" class="form-label">{{ t.FILTER_BY_ENTITY_TYPE }}</label>
+                    <select name="entity_type" id="entity_type" class="form-select">
+                        <option value="">{{ t.ALL_ENTITY_TYPES }}</option>
+                        {% for entity in available_entity_types %}
+                        <option value="{{ entity }}" {% if entity == entity_type_filter %}selected{% endif %}>
+                            {{ entity }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>{{ t.APPLY_FILTERS }}
+                    </button>
+                    {% if year %}
+                    <a href="{% url 'api_transparency_report_year' year=year %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>{{ t.CLEAR_FILTERS }}
+                    </a>
+                    {% else %}
+                    <a href="{% url 'api_transparency_report' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>{{ t.CLEAR_FILTERS }}
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Errors List -->
+    {% if page_obj.object_list %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                {{ t.PARSE_ERRORS }}
+                <span class="badge bg-secondary">{{ page_obj.paginator.count }}</span>
+            </h5>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">{{ t.ERROR_TYPE }}</th>
+                            <th style="width: 8%;">{{ t.ENTITY_TYPE }}</th>
+                            <th style="width: 15%;">{{ t.ENTITY_ID }}</th>
+                            <th style="width: 17%;">{{ t.ENTITY_NAME }}</th>
+                            <th style="width: 35%;">{{ t.ERROR_MESSAGE }}</th>
+                            <th style="width: 15%;">{{ t.CREATED_AT }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for error in page_obj %}
+                        <tr>
+                            <td>
+                                <span class="badge 
+                                    {% if error.error_type == 'API_CONNECTION' %}bg-danger
+                                    {% elif error.error_type == 'DATA_PARSING' %}bg-warning
+                                    {% elif error.error_type == 'MISSING_DATA' %}bg-info
+                                    {% elif error.error_type == 'VALIDATION' %}bg-secondary
+                                    {% elif error.error_type == 'DATABASE' %}bg-danger
+                                    {% elif error.error_type == 'PHOTO_DOWNLOAD' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ error.get_error_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if error.entity_type %}
+                                <span class="badge bg-light text-dark">{{ error.entity_type }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if error.entity_id %}
+                                <small class="font-monospace text-break">{{ error.entity_id }}</small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>
+                                    {% if error.entity_name %}
+                                        {{ error.entity_name|truncatechars:50 }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <small>{{ error.error_message }}</small>
+                                {% if error.error_details %}
+                                <button class="btn btn-sm btn-outline-secondary ms-2" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#details-{{ error.id }}" 
+                                        aria-expanded="false">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                                <div class="collapse mt-2" id="details-{{ error.id }}">
+                                    <div class="card card-body bg-light">
+                                        <small><strong>{{ t.ERROR_DETAILS }}:</strong><br>
+                                        <pre class="mb-0" style="font-size: 0.8rem; white-space: pre-wrap;">{{ error.error_details }}</pre></small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ error.created_at|date:"Y-m-d H:i:s" }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if error_type_filter %}&error_type={{ error_type_filter }}{% endif %}{% if entity_type_filter %}&entity_type={{ entity_type_filter }}{% endif %}">
+                    {{ t.PREVIOUS }}
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item disabled">
+                <span class="page-link">
+                    {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if error_type_filter %}&error_type={{ error_type_filter }}{% endif %}{% if entity_type_filter %}&entity_type={{ entity_type_filter }}{% endif %}">
+                    {{ t.NEXT }}
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <!-- No Errors -->
+    <div class="alert alert-success text-center p-5">
+        <i class="fas fa-check-circle fa-3x mb-3"></i>
+        <h4>{{ t.NO_ERRORS_FOUND }}</h4>
+        <p class="mb-0">{{ t.NO_ERRORS_RECORDED }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

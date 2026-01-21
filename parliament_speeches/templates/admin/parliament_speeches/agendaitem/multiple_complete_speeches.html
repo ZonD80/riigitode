@@ -1,0 +1,186 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='parliament_speeches' %}">Parliament Speeches</a>
+    &rsaquo; <a href="{% url 'admin:parliament_speeches_agendaitem_changelist' %}">Agenda Items</a>
+    &rsaquo; Complete Speeches ({{ total_agenda_items }} items)
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module">
+        <div class="results">
+            <div class="summary-header" style="margin-bottom: 30px; padding: 20px; background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px;">
+                <h2 style="margin: 0 0 10px 0;">Complete Speeches Summary</h2>
+                <div class="summary-meta">
+                    <strong>Selected Agenda Items:</strong> {{ total_agenda_items }}<br>
+                    <strong>Items with Speeches:</strong> {{ agenda_items_with_speeches|length }}<br>
+                    <strong>Total Speeches:</strong> 
+                    {% with total_speeches=0 %}
+                        {% for item in agenda_items_with_speeches %}
+                            {% with total_speeches=total_speeches|add:item.speeches.count %}{% endwith %}
+                        {% endfor %}
+                        {{ total_speeches }}
+                    {% endwith %}
+                </div>
+            </div>
+            
+            {% if agenda_items_with_speeches %}
+                {% for item_data in agenda_items_with_speeches %}
+                    <div class="agenda-section" style="margin-bottom: 40px; page-break-inside: avoid;">
+                        <div class="agenda-header" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border: 2px solid #417690; border-radius: 4px;">
+                            <h3 style="margin: 0 0 10px 0; color: #417690;">
+                                <a href="{% url 'admin:parliament_speeches_agendaitem_change' item_data.agenda_item.pk %}" target="_blank" style="color: inherit; text-decoration: none;">
+                                    {{ item_data.agenda_item.title }}
+                                </a>
+                            </h3>
+                            <div class="agenda-meta" style="font-size: 0.95em;">
+                                <strong>Session:</strong> {{ item_data.agenda_item.plenary_session.title|truncatechars:80 }}<br>
+                                <strong>Date:</strong> {{ item_data.agenda_item.date|date:"Y-m-d H:i" }}<br>
+                                <strong>Speeches:</strong> {{ item_data.speeches.count }}
+                                <span style="float: right;">
+                                    <a href="{% url 'admin:parliament_speeches_agendaitem_complete_speech' item_data.agenda_item.pk %}" target="_blank" class="button" style="font-size: 0.9em;">View Separately</a>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="speeches-container">
+                            {% for speech in item_data.speeches %}
+                                <div class="speech-item" style="margin-bottom: 20px; padding: 12px; border-left: 3px solid #79aec8; background: #fafafa;">
+                                    <div class="speech-header" style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #ddd;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <strong class="speaker">{{ speech.speaker }}</strong>
+                                                {% if speech.politician %}
+                                                    <span class="politician-link" style="margin-left: 8px;">
+                                                        (<a href="{% url 'admin:parliament_speeches_politician_change' speech.politician.pk %}" target="_blank">{{ speech.politician.full_name }}</a>)
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="speech-meta" style="font-size: 0.85em; color: #666;">
+                                                <span class="time">{{ speech.date|date:"H:i:s" }}</span>
+                                                <span style="margin-left: 8px;">
+                                                    <a href="{% url 'admin:parliament_speeches_speech_change' speech.pk %}" target="_blank" title="Edit speech">✏️</a>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if speech.ai_summary %}
+                                        <div class="ai-summary" style="margin-bottom: 12px; padding: 8px; background: #e8f5e8; border-left: 2px solid #4caf50; border-radius: 3px;">
+                                            <strong style="color: #2e7d32; font-size: 0.9em;">Kokkuvõte:</strong><br>
+                                            <span style="font-style: italic; color: #2e7d32; font-size: 0.9em;">{{ speech.ai_summary }}</span>
+                                        </div>
+                                    {% endif %}
+                                    <div class="speech-text" style="line-height: 1.5; white-space: pre-wrap; font-size: 0.95em;">{{ speech.text }}</div>
+                                    {% if speech.link %}
+                                        <div class="speech-link" style="margin-top: 8px;">
+                                            <a href="{{ speech.link }}" target="_blank" style="font-size: 0.85em; color: #417690;">🔗 Original</a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {% if not forloop.last %}
+                        <hr style="margin: 30px 0; border: none; border-top: 2px solid #ddd; page-break-after: always;">
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="no-speeches" style="padding: 30px; text-align: center; color: #666;">
+                    <h3>No speeches found</h3>
+                    <p>None of the selected agenda items have speeches recorded.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="submit-row" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <a href="{% url 'admin:parliament_speeches_agendaitem_changelist' %}" class="default">← Back to Agenda Items</a>
+        <button onclick="window.print()" class="default" style="margin-left: 15px;">🖨️ Print All Speeches</button>
+    </div>
+</div>
+
+<style>
+.agenda-section {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.speech-item:nth-child(even) {
+    background: #f5f5f5 !important;
+}
+
+.speech-item:nth-child(odd) {
+    background: #fafafa !important;
+}
+
+.speaker {
+    font-size: 1.05em;
+    color: #333;
+}
+
+.politician-link a {
+    color: #417690;
+    text-decoration: none;
+    font-size: 0.95em;
+}
+
+.politician-link a:hover {
+    text-decoration: underline;
+}
+
+.speech-text {
+    font-family: Georgia, serif;
+    color: #333;
+}
+
+.agenda-header h3 a:hover {
+    text-decoration: underline;
+}
+
+@media print {
+    .breadcrumbs, .submit-row, .speech-link, .speech-meta a, .agenda-header a.button {
+        display: none !important;
+    }
+    
+    .agenda-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 30px;
+    }
+    
+    .speech-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 15px;
+    }
+    
+    .agenda-header {
+        background: #f0f0f0 !important;
+        border: 1px solid #ccc !important;
+    }
+    
+    hr {
+        page-break-after: always;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .speech-header > div {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .speech-meta {
+        margin-top: 5px;
+    }
+}
+</style>
+{% endblock %}

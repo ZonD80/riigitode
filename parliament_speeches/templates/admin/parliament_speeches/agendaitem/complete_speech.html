@@ -1,0 +1,320 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='parliament_speeches' %}">Parliament Speeches</a>
+    &rsaquo; <a href="{% url 'admin:parliament_speeches_agendaitem_changelist' %}">Agenda Items</a>
+    &rsaquo; <a href="{% url 'admin:parliament_speeches_agendaitem_change' agenda_item.pk %}">{{ agenda_item.title|truncatechars:50 }}</a>
+    &rsaquo; Complete Speech
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module">
+        <div class="results">
+            <div class="agenda-header" style="margin-bottom: 20px; padding: 15px; background: #f8f8f8; border: 1px solid #ddd;">
+                <h2 style="margin: 0 0 10px 0;">{{ agenda_item.title }}</h2>
+                <div class="agenda-meta">
+                    <strong>Session:</strong> {{ agenda_item.plenary_session.title|truncatechars:100 }}<br>
+                    <strong>Date:</strong> {{ agenda_item.date|date:"Y-m-d H:i" }}<br>
+                    <strong>Total Speeches:</strong> {{ speeches.count }}<br>
+                    {% if agenda_item.formatted_total_time %}
+                        <strong>Agenda Duration:</strong> <span style="color: #0066cc;">🕒 {{ agenda_item.formatted_total_time }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if agenda_item.structured_summary %}
+                <div class="ai-agenda-summary" style="margin-bottom: 25px; padding: 20px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                    <h3 style="margin: 0 0 15px 0; color: #1976d2; display: flex; align-items: center;">
+                        Agenda Summary
+                    </h3>
+                    <div class="summary-content" style="line-height: 1.6; white-space: pre-wrap; color: #1565c0; font-size: 1.05em;">{{ agenda_item.structured_summary.summary_text }}</div>
+                </div>
+            {% endif %}
+            
+            {% if speeches %}
+                <div class="speech-container">
+                    {% for speech in speeches %}
+                        <div class="speech-item" style="margin-bottom: 25px; padding: 15px; border-left: 4px solid #417690; background: #fafafa;">
+                            <div class="speech-header" style="margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ddd;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong class="speaker">{{ speech.speaker }}</strong>
+                                        {% if speech.politician %}
+                                            <span class="politician-link" style="margin-left: 10px;">
+                                                (<a href="{% url 'admin:parliament_speeches_politician_change' speech.politician.pk %}" target="_blank">{{ speech.politician.full_name }}</a>)
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="speech-meta" style="font-size: 0.9em; color: #666;">
+                                        <span class="time">{{ speech.date|date:"H:i:s" }}</span>
+                                        <span style="margin-left: 10px;">
+                                            <a href="{% url 'admin:parliament_speeches_speech_change' speech.pk %}" target="_blank" title="Edit speech">✏️</a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if speech.ai_summary %}
+                                <div class="ai-summary" style="margin-bottom: 15px; padding: 10px; background: #e8f5e8; border-left: 3px solid #4caf50; border-radius: 4px;">
+                                    <strong style="color: #2e7d32;">Kokkuvõte:</strong><br>
+                                    <span style="font-style: italic; color: #2e7d32;">{{ speech.ai_summary }}</span>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Accordion for speech text -->
+                            <div class="speech-accordion">
+                                <button class="accordion-header" type="button" data-speech-id="{{ speech.pk }}">
+                                    <span class="accordion-title">📄 Exact Text</span>
+                                    <span class="accordion-icon">▼</span>
+                                </button>
+                                <div class="accordion-content" id="speech-{{ speech.pk }}" style="display: none;">
+                                    <div class="speech-text" style="line-height: 1.6; white-space: pre-wrap;">{{ speech.text }}</div>
+                                </div>
+                            </div>
+                            {% if speech.link %}
+                                <div class="speech-link" style="margin-top: 10px;">
+                                    <a href="{{ speech.link }}" target="_blank" style="font-size: 0.9em; color: #417690;">🔗 Original transcript</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-speeches" style="padding: 20px; text-align: center; color: #666;">
+                    <p>No speeches found for this agenda item.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="submit-row" style="margin-top: 20px;">
+        <a href="{% url 'admin:parliament_speeches_agendaitem_changelist' %}" class="default">← Back to Agenda Items</a>
+        {% if has_change_permission %}
+            <a href="{% url 'admin:parliament_speeches_agendaitem_change' agenda_item.pk %}" class="default" style="margin-left: 10px;">Edit Agenda Item</a>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.speech-item:nth-child(even) {
+    background: #f0f0f0 !important;
+}
+
+.speech-item:nth-child(odd) {
+    background: #fafafa !important;
+}
+
+.speaker {
+    font-size: 1.1em;
+    color: #333;
+}
+
+.politician-link a {
+    color: #417690;
+    text-decoration: none;
+}
+
+.politician-link a:hover {
+    text-decoration: underline;
+}
+
+.speech-text {
+    font-family: Georgia, serif;
+    font-size: 1.05em;
+}
+
+.agenda-header {
+    border-radius: 4px;
+}
+
+.speech-item {
+    border-radius: 4px;
+}
+
+.ai-agenda-summary {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ai-agenda-summary h3 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 600;
+}
+
+.summary-content {
+    font-family: Georgia, serif;
+}
+
+/* Accordion Styles */
+.speech-accordion {
+    margin-top: 15px;
+}
+
+.accordion-header {
+    width: 100%;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.accordion-header:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.accordion-header:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.accordion-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.accordion-icon {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    color: #6c757d;
+}
+
+.accordion-header[aria-expanded="true"] .accordion-icon {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    background: #ffffff;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.accordion-content .speech-text {
+    padding: 15px;
+    margin: 0;
+}
+
+@media print {
+    .breadcrumbs, .submit-row, .speech-link, .speech-meta a, .accordion-controls {
+        display: none;
+    }
+    
+    .speech-item, .ai-agenda-summary {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .ai-agenda-summary {
+        border: 2px solid #2196f3 !important;
+        background: #f5f5f5 !important;
+    }
+    
+    /* Respect collapsed state when printing - only show expanded accordions */
+    .accordion-content {
+        border: 1px solid #ddd !important;
+    }
+    
+    .accordion-header {
+        background: #f5f5f5 !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    /* Hide collapsed accordion content when printing */
+    .accordion-content[style*="display: none"] {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize accordion functionality
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    
+    accordionHeaders.forEach(function(header) {
+        header.addEventListener('click', function() {
+            const speechId = this.getAttribute('data-speech-id');
+            const content = document.getElementById('speech-' + speechId);
+            const icon = this.querySelector('.accordion-icon');
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            // Toggle the accordion
+            if (isExpanded) {
+                // Collapse
+                content.style.display = 'none';
+                this.setAttribute('aria-expanded', 'false');
+                this.style.borderRadius = '4px';
+            } else {
+                // Expand
+                content.style.display = 'block';
+                this.setAttribute('aria-expanded', 'true');
+                this.style.borderRadius = '4px 4px 0 0';
+            }
+        });
+        
+        // Initialize all accordions as collapsed
+        header.setAttribute('aria-expanded', 'false');
+    });
+    
+    // Add expand/collapse all functionality
+    const speechContainer = document.querySelector('.speech-container');
+    if (speechContainer && accordionHeaders.length > 1) {
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'accordion-controls';
+        controlsDiv.style.cssText = 'margin-bottom: 20px; text-align: right;';
+        
+        const expandAllBtn = document.createElement('button');
+        expandAllBtn.textContent = '📖 Expand All Texts';
+        expandAllBtn.type = 'button';
+        expandAllBtn.style.cssText = 'margin-right: 10px; padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;';
+        
+        const collapseAllBtn = document.createElement('button');
+        collapseAllBtn.textContent = '📚 Collapse All Texts';
+        collapseAllBtn.type = 'button';
+        collapseAllBtn.style.cssText = 'padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;';
+        
+        expandAllBtn.addEventListener('click', function() {
+            accordionHeaders.forEach(function(header) {
+                const speechId = header.getAttribute('data-speech-id');
+                const content = document.getElementById('speech-' + speechId);
+                content.style.display = 'block';
+                header.setAttribute('aria-expanded', 'true');
+                header.style.borderRadius = '4px 4px 0 0';
+            });
+        });
+        
+        collapseAllBtn.addEventListener('click', function() {
+            accordionHeaders.forEach(function(header) {
+                const speechId = header.getAttribute('data-speech-id');
+                const content = document.getElementById('speech-' + speechId);
+                content.style.display = 'none';
+                header.setAttribute('aria-expanded', 'false');
+                header.style.borderRadius = '4px';
+            });
+        });
+        
+        controlsDiv.appendChild(expandAllBtn);
+        controlsDiv.appendChild(collapseAllBtn);
+        speechContainer.insertBefore(controlsDiv, speechContainer.firstChild);
+    }
+});
+</script>
+{% endblock %}

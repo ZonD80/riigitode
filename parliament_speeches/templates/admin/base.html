@@ -1,0 +1,72 @@
+{% extends "admin/base.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+{% if model_counts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Model counts from Django context
+    const modelCounts = {
+        'politician': {{ model_counts.politicians|default:0 }},
+        'faction': {{ model_counts.factions|default:0 }},
+        'politicianfaction': {{ model_counts.politician_factions|default:0 }},
+        'plenarysession': {{ model_counts.plenary_sessions|default:0 }},
+        'agendaitem': {{ model_counts.agenda_items|default:0 }},
+        'speech': {{ model_counts.speeches|default:0 }}
+    };
+    
+    // Function to add counters to navigation links
+    function addCountersToNav() {
+        // Find all model links in the navigation
+        const navLinks = document.querySelectorAll('#nav-sidebar a[href*="/parliament_speeches/"]');
+        
+        navLinks.forEach(function(link) {
+            const href = link.getAttribute('href');
+            
+            // Extract model name from URL
+            let modelName = null;
+            if (href.includes('/politician/')) modelName = 'politician';
+            else if (href.includes('/faction/')) modelName = 'faction';
+            else if (href.includes('/politicianfaction/')) modelName = 'politicianfaction';
+            else if (href.includes('/plenarysession/')) modelName = 'plenarysession';
+            else if (href.includes('/agendaitem/')) modelName = 'agendaitem';
+            else if (href.includes('/speech/')) modelName = 'speech';
+            
+            // Add counter if we have a count for this model
+            if (modelName && modelCounts[modelName] > 0) {
+                const currentText = link.textContent.trim();
+                // Only add counter if not already present
+                if (!currentText.includes('(')) {
+                    link.textContent = currentText + ' (' + modelCounts[modelName] + ')';
+                }
+            }
+        });
+    }
+    
+    // Add counters when page loads
+    addCountersToNav();
+    
+    // Also add counters when navigating (for AJAX navigation)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                addCountersToNav();
+            }
+        });
+    });
+    
+    const navSidebar = document.getElementById('nav-sidebar');
+    if (navSidebar) {
+        observer.observe(navSidebar, { childList: true, subtree: true });
+    }
+});
+</script>
+<style>
+.model-count {
+    color: #666;
+    font-weight: normal;
+    font-size: 0.9em;
+}
+</style>
+{% endif %}
+{% endblock %}

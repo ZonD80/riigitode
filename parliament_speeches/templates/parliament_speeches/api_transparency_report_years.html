@@ -1,0 +1,98 @@
+{% extends "parliament_speeches/base.html" %}
+{% load localization %}
+
+{% block title %}{{ t.API_TRANSPARENCY_REPORT }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-3">
+                <i class="fas fa-shield-alt text-primary me-2"></i>
+                {{ t.TRANSPARENCY_AND_INTEGRITY }}
+            </h1>
+            <p class="lead text-muted">
+                {{ t.SELECT_YEAR_TO_VIEW_REPORT }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Years List -->
+    {% if year_stats %}
+    <div class="row">
+        {% for stat in year_stats %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <a href="{% url 'api_transparency_report_year' year=stat.year %}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-3">
+                            <i class="fas fa-calendar-alt text-primary me-2"></i>
+                            {{ stat.year }}
+                        </h2>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">{{ t.TOTAL_ERRORS }}:</span>
+                                <span class="badge {% if stat.total_errors > 0 %}bg-danger{% else %}bg-success{% endif %} fs-6">
+                                    {{ stat.total_errors }}
+                                </span>
+                            </div>
+                            
+                            {% if stat.last_run_time %}
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ t.LAST_RUN }}: 
+                                    <br>{{ stat.last_run_time|date:"Y-m-d H:i" }}
+                                </small>
+                            </div>
+                            {% endif %}
+                            
+                            {% if stat.date_range %}
+                            <div class="mb-1">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-check me-1"></i>{{ t.PARSED_PERIOD }}:
+                                </small>
+                            </div>
+                            <div class="mb-1">
+                                <small class="text-muted">
+                                    {{ stat.date_range.start }} → {{ stat.date_range.end }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-arrow-right me-2"></i>{{ t.VIEW_REPORT }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% else %}
+    <!-- No Years -->
+    <div class="alert alert-info text-center p-5">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>{{ t.NO_REPORTS_AVAILABLE }}</h4>
+        <p class="mb-0">{{ t.NO_TRANSPARENCY_REPORTS_YET }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.hover-shadow {
+    transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}
+

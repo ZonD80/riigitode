@@ -1,0 +1,256 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ politician.full_name }} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}profile{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ politician.full_name }} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.AI_PROFILING }}: {{ politician.full_name }}. {% if politician.profiles_required > 0 %}{{ politician.profiles_already_profiled }}/{{ politician.profiles_required }} ({{ politician.profiling_percentage }}%){% endif %}">{% endblock %}
+{% block og_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ politician.full_name }} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.AI_PROFILING }}: {{ politician.full_name }}. {% if politician.profiles_required > 0 %}{{ politician.profiles_already_profiled }}/{{ politician.profiles_required }} ({{ politician.profiling_percentage }}%){% endif %}">{% endblock %}
+{% block twitter_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politicians_list' %}">{{ t.POLITICIANS }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_detail' politician.pk %}">{{ politician.full_name }}</a></li>
+            <li class="breadcrumb-item active">{{ t.AI_PROFILING }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            {% if politician.photo_big %}
+                                <img src="{{ politician.photo_big.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-large">
+                            {% elif politician.photo %}
+                                <img src="{{ politician.photo.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-large">
+                            {% else %}
+                                <div class="politician-photo-large-placeholder bg-light">
+                                    <i class="fas fa-user fa-4x text-primary"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h1 class="mb-3">
+                                {{ t.AI_PROFILING }}: {{ politician.full_name }}
+                            </h1>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><i class="fas fa-calendar me-2"></i>{{ t.AGENDA_ITEMS_COUNT_PROFILING }}: {{ overall_metrics.total_agendas }}</p>
+                                    <p><i class="fas fa-user-cog me-2"></i>{{ politician.profiles_already_profiled }}/{{ politician.profiles_required }} profiling ({{ politician.profiling_percentage }}%)</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><i class="fas fa-microphone me-2"></i>{{ t.TOTAL_SPEECHES }}: {{ overall_metrics.total_speeches }}</p>
+                                </div>
+                            </div>
+                            
+                            {% if overall_metrics.analysis_period %}
+                                <p class="mb-0">
+                                    <i class="fas fa-clock me-2"></i>{{ t.ANALYSIS_PERIOD }}: {{ overall_metrics.analysis_period }}
+                                </p>
+                            {% endif %}
+                            
+                            {% if not has_profile_data %}
+                                <div class="alert alert-info mb-3">
+                                    <h6 class="alert-heading mb-1">{{ t.NOT_PROFILED_YET }}</h6>
+                                    <small>{{ t.AI_PROFILE_NOT_GENERATED_FOR_POLITICIAN }}</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Categories Grid -->
+    <div class="row mb-4">
+            {% for category_code, category_name in available_categories %}
+                {% with stats=profile_stats|get_item:category_code %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100 profile-category-card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    {% if category_code == 'POLITICAL_POSITION' %}
+                                        <i class="fas fa-balance-scale me-2"></i>{{ t.POLITICAL_POSITION }}
+                                    {% elif category_code == 'TOPIC_EXPERTISE' %}
+                                        <i class="fas fa-graduation-cap me-2"></i>{{ t.TOPIC_EXPERTISE }}
+                                    {% elif category_code == 'RHETORICAL_STYLE' %}
+                                        <i class="fas fa-microphone me-2"></i>{{ t.RHETORICAL_STYLE }}
+                                    {% elif category_code == 'ACTIVITY_PATTERNS' %}
+                                        <i class="fas fa-chart-line me-2"></i>{{ t.ACTIVITY_PATTERNS }}
+                                    {% elif category_code == 'OPPOSITION_STANCE' %}
+                                        <i class="fas fa-gavel me-2"></i>{{ t.OPPOSITION_STANCE }}
+                                    {% elif category_code == 'COLLABORATION_STYLE' %}
+                                        <i class="fas fa-handshake me-2"></i>{{ t.COLLABORATION_STYLE }}
+                                    {% elif category_code == 'REGIONAL_FOCUS' %}
+                                        <i class="fas fa-map-marker-alt me-2"></i>{{ t.REGIONAL_FOCUS }}
+                                    {% elif category_code == 'ECONOMIC_VIEWS' %}
+                                        <i class="fas fa-coins me-2"></i>{{ t.ECONOMIC_VIEWS }}
+                                    {% elif category_code == 'SOCIAL_ISSUES' %}
+                                        <i class="fas fa-users me-2"></i>{{ t.SOCIAL_ISSUES }}
+                                    {% elif category_code == 'LEGISLATIVE_FOCUS' %}
+                                        <i class="fas fa-file-alt me-2"></i>{{ t.LEGISLATIVE_FOCUS }}
+                                    {% else %}
+                                        <i class="fas fa-cog me-2"></i>{{ category_name }}
+                                    {% endif %}
+                                </h6>
+                                
+                                {% if stats.has_overall %}
+                                    <!-- Show overall profile content -->
+                                    {% with profile=overall_profiles_by_category|get_item:category_code %}
+                                        {% if profile %}
+                                            {% if profile.is_incomplete %}
+                                                <div class="alert alert-warning mb-3">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    <strong>{{ t.INCOMPLETE }}:</strong> {{ t.INCOMPLETE_PROFILE }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="card-text profile-analysis-text">
+                                                {% localized_analysis_tag profile %}
+                                            </div>
+                                        {% else %}
+                                            <p class="card-text text-muted">{{ t.NOT_PROFILED_YET }}</p>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <p class="card-text text-muted">{{ t.NOT_PROFILED_YET }}</p>
+                                {% endif %}
+                                
+                                <!-- Profile completion status -->
+                                <div class="mb-3">
+                                    <div class="row small">
+                                        <div class="col-6">
+                                            <a href="{% url 'politician_profiling_agendas' politician.pk category_code %}" class="text-decoration-none">
+                                                <i class="fas fa-list me-1"></i>{{ stats.agenda_existing }}/{{ stats.agenda_count }} agendas
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                            <a href="{% url 'politician_profiling_sessions' politician.pk category_code %}" class="text-decoration-none">
+                                                <i class="fas fa-building me-1"></i>{{ stats.session_existing }}/{{ stats.session_count }} sessions
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="row small">
+                                        <div class="col-6">
+                                            <a href="{% url 'politician_profiling_months' politician.pk category_code %}" class="text-decoration-none">
+                                                <i class="fas fa-calendar me-1"></i>{{ stats.month_existing }}/{{ stats.month_count }} months
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                            <a href="{% url 'politician_profiling_years' politician.pk category_code %}" class="text-decoration-none">
+                                                <i class="fas fa-calendar-alt me-1"></i>{{ stats.year_existing }}/{{ stats.year_count }} years
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4>{{ t.DETAILED_ANALYSIS }}</h4>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'politician_profiling_agendas' politician.pk 'ALL' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-list me-2"></i>{{ t.BY_AGENDAS }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'politician_profiling_sessions' politician.pk 'ALL' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-building me-2"></i>{{ t.BY_PLENARY_SESSIONS }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'politician_profiling_months' politician.pk 'ALL' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-calendar me-2"></i>{{ t.BY_MONTHS }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'politician_profiling_years' politician.pk 'ALL' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-calendar-alt me-2"></i>{{ t.BY_YEARS }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+
+
+<style>
+.politician-photo-large {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+}
+
+.politician-photo-large-placeholder {
+    width: 120px;
+    height: 120px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+}
+
+.profile-category-card {
+    transition: transform 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.profile-category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-header h5, .card-header h6 {
+    margin-bottom: 0;
+}
+
+.profile-category-card a {
+    color: #6c757d;
+    transition: color 0.2s ease-in-out;
+}
+
+.profile-category-card a:hover {
+    color: #007bff;
+}
+
+.profile-analysis-text {
+    white-space: pre-line;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.profile-analysis-text:empty::before {
+    content: "{{ t.NOT_PROFILED_YET }}";
+    color: #6c757d;
+    font-style: italic;
+}
+</style>
+{% endblock %}

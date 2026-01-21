@@ -1,0 +1,152 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ politician.full_name }} - {% localized_title_tag agenda %}{% if agenda.date %} ({{ agenda.date|date:"Y-m-d" }}){% endif %} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}profile{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ politician.full_name }} - {% localized_title_tag agenda %}{% if agenda.date %} ({{ agenda.date|date:"Y-m-d" }}){% endif %} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.AI_PROFILING }}: {{ politician.full_name }} - {% localized_title_tag agenda %}.">{% endblock %}
+{% block og_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ politician.full_name }} - {% localized_title_tag agenda %}{% if agenda.date %} ({{ agenda.date|date:"Y-m-d" }}){% endif %} - {{ t.AI_PROFILING }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.AI_PROFILING }}: {{ politician.full_name }} - {% localized_title_tag agenda %}.">{% endblock %}
+{% block twitter_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politicians_list' %}">{{ t.POLITICIANS }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_detail' politician.pk %}">{{ politician.full_name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_profiling' politician.pk %}">{{ t.AI_PROFILING }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_profiling_agendas' politician.pk selected_category %}">{{ t.BY_AGENDAS }}</a></li>
+            <li class="breadcrumb-item active">{{ agenda.date|date:"Y-m-d" }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h1 class="mb-3">{{ t.AGENDA_PROFILE }}: {{ politician.full_name }}</h1>
+                    {% localized_title_tag agenda as agenda_title %}
+                    <h5 class="mb-3">{{ agenda_title }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><i class="fas fa-calendar me-2"></i>{{ agenda.date|date:"Y-m-d" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><i class="fas fa-building me-2"></i>{% localized_title_tag agenda.plenary_session %}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if has_profiles %}
+        <!-- Profile Categories -->
+        <div class="row">
+            {% for category_code, category_name in available_categories %}
+                {% with profile=profiles_by_category|get_item:category_code %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 {% if profile %}border-success{% else %}border-warning{% endif %}">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    {% if category_code == 'POLITICAL_POSITION' %}
+                                        <i class="fas fa-balance-scale me-2"></i>{{ t.POLITICAL_POSITION }}
+                                    {% elif category_code == 'TOPIC_EXPERTISE' %}
+                                        <i class="fas fa-graduation-cap me-2"></i>{{ t.TOPIC_EXPERTISE }}
+                                    {% elif category_code == 'RHETORICAL_STYLE' %}
+                                        <i class="fas fa-microphone me-2"></i>{{ t.RHETORICAL_STYLE }}
+                                    {% elif category_code == 'ACTIVITY_PATTERNS' %}
+                                        <i class="fas fa-chart-line me-2"></i>{{ t.ACTIVITY_PATTERNS }}
+                                    {% elif category_code == 'OPPOSITION_STANCE' %}
+                                        <i class="fas fa-gavel me-2"></i>{{ t.OPPOSITION_STANCE }}
+                                    {% elif category_code == 'COLLABORATION_STYLE' %}
+                                        <i class="fas fa-handshake me-2"></i>{{ t.COLLABORATION_STYLE }}
+                                    {% elif category_code == 'REGIONAL_FOCUS' %}
+                                        <i class="fas fa-map-marker-alt me-2"></i>{{ t.REGIONAL_FOCUS }}
+                                    {% elif category_code == 'ECONOMIC_VIEWS' %}
+                                        <i class="fas fa-coins me-2"></i>{{ t.ECONOMIC_VIEWS }}
+                                    {% elif category_code == 'SOCIAL_ISSUES' %}
+                                        <i class="fas fa-users me-2"></i>{{ t.SOCIAL_ISSUES }}
+                                    {% elif category_code == 'LEGISLATIVE_FOCUS' %}
+                                        <i class="fas fa-file-alt me-2"></i>{{ t.LEGISLATIVE_FOCUS }}
+                                    {% else %}
+                                        <i class="fas fa-cog me-2"></i>{{ category_name }}
+                                    {% endif %}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {% if profile %}
+                                    {% if profile.is_incomplete %}
+                                        <div class="alert alert-warning mb-3">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <strong>{{ t.INCOMPLETE }}:</strong> {{ t.INCOMPLETE_PROFILE }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="analysis-content">
+                                        {% localized_analysis_tag profile %}
+                                    </div>
+                                    {% if profile.speeches_analyzed %}
+                                        <hr>
+                                        <small class="text-muted">
+                                            <i class="fas fa-chart-bar me-1"></i>{{ profile.speeches_analyzed }} {{ t.SPEECHES_ANALYZED }}
+                                        </small>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="text-muted text-center py-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>{{ t.NOT_PROFILED_YET }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- No Profiles Available -->
+        <div class="text-center py-5">
+            <div class="alert alert-warning">
+                <h4><i class="fas fa-exclamation-triangle me-2"></i>{{ t.NOT_PROFILED_YET }}</h4>
+                <p>{{ t.NO_PROFILES_FOR_AGENDA }}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'politician_profiling_agendas' politician.pk selected_category %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>{{ t.BACK_TO_AGENDAS }}
+            </a>
+            <a href="{% url 'agenda_detail' agenda.pk %}?politician={{ politician.pk }}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-external-link-alt me-1"></i>{{ t.VIEW_AGENDA_DETAILS }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.analysis-content {
+    line-height: 1.6;
+    font-size: 0.95rem;
+    white-space: pre-line;
+}
+
+.card.border-success {
+    border-color: #28a745 !important;
+}
+
+.card.border-warning {
+    border-color: #ffc107 !important;
+}
+</style>
+{% endblock %}

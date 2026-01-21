@@ -1,0 +1,70 @@
+# version field is obsolete in modern Docker Compose
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    environment:
+      - POSTGRES_DB=parliament_tracker
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    # DO NOT EXPOSE DATABASE PORT TO INTERNET - only accessible within Docker network
+    # ports:
+    #   - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  web:
+    build: .
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn parliament_tracker.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=parliament_tracker
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      # AI Configuration for Docker
+      # Set these via environment variables or .env file (see env.example)
+      # - AI_PROVIDER=claude
+      # - CLAUDE_API_KEY=your-claude-api-key-here
+      # - OPENAI_API_KEY=your-openai-api-key-here
+      # - OPENAI_MODEL=gpt-4o
+      # - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # - OLLAMA_MODEL=gemma3:12b
+      # - GEMINI_API_KEY=your-gemini-api-key-here
+      # - GEMINI_MODEL=gemini-2.5-flash-preview-09-2025
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+volumes:
+  postgres_data:

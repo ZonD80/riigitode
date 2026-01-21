@@ -1,0 +1,372 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ politician.full_name }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}profile{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ politician.full_name }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{% if politician.formatted_total_time %}{{ t.TOTAL_SPEAKING_TIME }}: {{ politician.formatted_total_time }}. {% endif %}{{ page_obj.paginator.count }} {{ t.AGENDA_ITEMS_COUNT }}{% if ai_summaries_count %}, {{ ai_summaries_count }} {{ t.WITH_AI_SUMMARIES }}{% endif %}.">{% endblock %}
+{% block og_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ politician.full_name }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{% if politician.formatted_total_time %}{{ t.TOTAL_SPEAKING_TIME }}: {{ politician.formatted_total_time }}. {% endif %}{{ page_obj.paginator.count }} {{ t.AGENDA_ITEMS_COUNT }}{% if ai_summaries_count %}, {{ ai_summaries_count }} {{ t.WITH_AI_SUMMARIES }}{% endif %}.">{% endblock %}
+{% block twitter_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politicians_list' %}">{{ t.POLITICIANS }}</a></li>
+            <li class="breadcrumb-item active">{{ politician.full_name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Politician Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            {% if politician.photo_big %}
+                                <img src="{{ politician.photo_big.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-large">
+                            {% elif politician.photo %}
+                                <img src="{{ politician.photo.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-large">
+                            {% else %}
+                                <div class="politician-photo-large-placeholder">
+                                    <i class="fas fa-user fa-4x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h1 class="mb-3">
+                                <i class="fas fa-user-tie me-2"></i>
+                                {{ politician.full_name }}
+                            </h1>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {% if politician.email %}
+                                        <p><strong>{{ t.EMAIL }}:</strong> 
+                                            <a href="mailto:{{ politician.email }}">{{ politician.email }}</a>
+                                        </p>
+                                    {% endif %}
+                                    {% if politician.phone %}
+                                        <p><strong>{{ t.PHONE }}:</strong> {{ politician.phone }}</p>
+                                    {% endif %}
+                                    {% if politician.gender %}
+                                        <p><strong>{{ t.GENDER }}:</strong> {{ politician.gender }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>{{ t.STATUS }}:</strong> 
+                                        {% if politician.active %}
+                                            <span class="badge bg-success">{{ t.ACTIVE }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ t.INACTIVE }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if politician.parliament_seniority %}
+                                        <p><strong>{{ t.PARLIAMENT_SENIORITY }}:</strong> {{ politician.parliament_seniority }} {{ t.YEARS }}</p>
+                                    {% endif %}
+                                    {% if politician.formatted_total_time %}
+                                        <p><strong>{{ t.TOTAL_SPEAKING_TIME }}:</strong> 
+                                            <span class="text-primary">
+                                                <i class="fas fa-clock me-1"></i>{{ politician.formatted_total_time }}
+                                            </span>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <span class="badge bg-info text-white me-2">
+                                    {{ page_obj.paginator.count }} {{ t.AGENDA_ITEMS_COUNT }}
+                                </span>
+                                {% if ai_summaries_count is not None %}
+                                    <span class="badge bg-success me-2">
+                                        {{ ai_summaries_count }} {{ t.WITH_AI_SUMMARIES }} ({{ ai_summaries_percentage }}%)
+                                    </span>
+                                {% endif %}
+                                {% if politician.profiles_required > 0 %}
+                                    <span class="badge bg-warning text-dark me-2">
+                                        {{ politician.profiles_already_profiled }}/{{ politician.profiles_required }} profiling ({{ politician.profiling_percentage }}%)
+                                    </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'politician_activity_graph' politician.pk %}" 
+                                   class="btn btn-primary me-2">
+                                    <i class="fas fa-chart-line me-1"></i>{{ t.ACTIVITY_GRAPH }}
+                                </a>
+                                <a href="{% url 'politician_profiling' politician.pk %}" 
+                                   class="btn btn-success">
+                                    {{ t.AI_PROFILING }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="search-form">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="date_from" class="form-label">{{ t.FROM_DATE }}</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label for="date_to" class="form-label">{{ t.TO_DATE }}</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ date_to }}">
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="most_active" name="most_active" 
+                           {% if most_active %}checked{% endif %}>
+                    <label class="form-check-label" for="most_active">
+                        {{ t.WHERE_WAS_MOST_ACTIVE }}
+                    </label>
+                </div>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-1"></i>{{ t.FILTER }}
+                </button>
+            </div>
+        </form>
+        {% if date_from or date_to or most_active %}
+            <div class="mt-3">
+                <a href="{% url 'politician_detail' politician.pk %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>{{ t.CLEAR_FILTERS }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Agenda Items -->
+    {% if page_obj %}
+        <div class="row">
+            <div class="col-12">
+                <h3 class="mb-3">{{ t.AGENDA_ITEMS }}</h3>
+                <p class="text-muted mb-3">
+                    {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ page_obj.paginator.count }} {{ t.AGENDA_ITEMS_COUNT }}
+                </p>
+            </div>
+        </div>
+
+        {% for agenda_item in page_obj %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <a href="{% url 'agenda_detail' agenda_item.pk %}" 
+                                   class="text-decoration-none">
+                                    {% localized_title_tag agenda_item %}
+                                </a>
+                                {% if agenda_item.is_incomplete %}
+                                    <span class="badge bg-warning text-dark ms-2" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                                    </span>
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ agenda_item.date|date:"Y-m-d H:i" }}
+                                <br>
+                                <i class="fas fa-building me-1"></i>
+                                {% localized_title_tag agenda_item.plenary_session %}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            {% if agenda_item.politician_speech_count > 0 %}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-microphone me-1"></i>
+                                    {{ agenda_item.politician_speech_count }} {{ t.SPEECHES_COUNT }}
+                                </span>
+                                {% if agenda_item.politician_speaking_time_formatted %}
+                                    <br><small class="text-info">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ t.AGENDA_DURATION }}: {{ agenda_item.politician_speaking_time_formatted }}
+                                    </small>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Activity Description (when politician was most active) -->
+                    {% if agenda_item.activity_description_obj %}
+                        <div class="alert alert-success mb-3">
+                            <h6 class="mb-2">
+                                <i class="fas fa-star me-1"></i>{{ t.MOST_ACTIVE_SPEAKER }}
+                            </h6>
+                            <div>{% localized_activity_tag agenda_item.activity_description_obj %}</div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Structured Analysis -->
+                    {% if agenda_item.structured_summary or agenda_item.structured_decisions %}
+                        <div class="structured-analysis-compact">
+                            <div class="row">
+                                <!-- Summary Column -->
+                                {% if agenda_item.structured_summary %}
+                                <div class="col-md-8">
+                                    <div class="summary-card p-3 bg-light border-start border-primary border-3">
+                                        <h6 class="text-primary mb-2">
+                                            <i class="fas fa-file-alt me-1"></i>Summary
+                                        </h6>
+                                        <div class="summary-text">
+                                            {{ agenda_item.structured_summary|localized_summary:current_language|truncatewords:40|linebreaks }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Decisions Column -->
+                                {% if agenda_item.structured_decisions %}
+                                <div class="col-md-4">
+                                    <div class="decisions-card p-3 bg-light border-start border-success border-3">
+                                        <h6 class="text-success mb-2">
+                                            <i class="fas fa-gavel me-1"></i>Decisions
+                                            <span class="badge bg-success ms-2">{{ agenda_item.structured_decisions.count }}</span>
+                                        </h6>
+                                        <div class="decisions-list">
+                                            {% for decision in agenda_item.structured_decisions %}
+                                                <div class="decision-compact mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                                                    {% if decision.politician %}
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            {% if decision.politician.photo %}
+                                                                <img src="{{ decision.politician.photo.url }}" 
+                                                                     alt="{{ decision.politician.full_name }}"
+                                                                     class="rounded-circle me-2" 
+                                                                     style="width: 20px; height: 20px; object-fit: cover;">
+                                                            {% else %}
+                                                                <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center" 
+                                                                     style="width: 20px; height: 20px;">
+                                                                    <i class="fas fa-user text-white" style="font-size: 8px;"></i>
+                                                                </div>
+                                                            {% endif %}
+                                                            <small class="fw-bold">
+                                                                {% if decision.politician.pk == politician.pk %}
+                                                                    <span class="text-primary">{{ decision.politician.full_name }} ({{ t.YOU }})</span>
+                                                                {% else %}
+                                                                    {{ decision.politician.full_name }}
+                                                                {% endif %}
+                                                            </small>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <div class="rounded-circle bg-warning me-2 d-flex align-items-center justify-content-center" 
+                                                                 style="width: 20px; height: 20px;">
+                                                                <i class="fas fa-users text-white" style="font-size: 8px;"></i>
+                                                            </div>
+                                                            <small class="fw-bold text-warning">{{ t.COLLECTIVE }}</small>
+                                                        </div>
+                                                    {% endif %}
+                                                    <small class="text-muted">{{ decision|localized_decision:current_language|truncatewords:12 }}</small>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- No analysis available -->
+                        <div class="p-3 bg-light border-start border-secondary border-3">
+                            <h6 class="text-secondary mb-2">
+                                <i class="fas fa-clock me-1"></i>{{ t.ANALYSIS }}
+                            </h6>
+                            <p class="mb-0 text-muted fst-italic">{{ t.WAS_NOT_ANALYZED_YET }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'agenda_detail' agenda_item.pk %}?politician={{ politician.pk }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>{{ t.VIEW_DETAILS }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav aria-label="Agenda items pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i> {{ t.PREVIOUS }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                {{ t.NEXT }} <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_AGENDA_ITEMS }}</h3>
+            <p class="text-muted">{{ t.NO_RECORDED_AGENDA_PARTICIPATIONS }}</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.politician-photo-large {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+}
+
+.politician-photo-large-placeholder {
+    width: 150px;
+    height: 150px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,544 @@
+{% extends 'parliament_speeches/base.html' %}
+
+{% block extra_css %}
+<style>
+    /* Chart container styling */
+    .profiling-chart-container {
+        min-height: 400px;
+        position: relative;
+    }
+    
+    .politician-legend {
+        min-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .politician-legend-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+    
+    .politician-legend-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .politician-photo-tiny {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+    
+    .photo-placeholder-tiny {
+        width: 30px;
+        height: 30px;
+        background-color: #dee2e6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 12px;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+    
+    .politician-legend-name {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-color);
+        text-decoration: none;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .politician-legend-name:hover {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    
+    .legend-percentage {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-left: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <h1><i class="fas fa-gavel me-3"></i>{{ t.SITE_NAME }}</h1>
+        <p class="slogan">{{ t.SITE_TAGLINE }}</p>
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-8">
+                <p class="lead">
+                    {{ t.EXPLORE_PARLIAMENT_DESC }}
+                </p>
+                <div class="mt-3">
+                    <a href="{% url 'api_transparency_report' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-shield-alt me-2"></i>{{ t.API_TRANSPARENCY_REPORT }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Features -->
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-alt fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="card-title">{{ t.PLENARY_SESSIONS }}</h3>
+                    <p class="card-text">
+                        {{ t.BROWSE_SESSIONS_DESC }}
+                    </p>
+                    <a href="{% url 'plenary_sessions_list' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search me-2"></i>{{ t.EXPLORE_SESSIONS }}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-users fa-3x text-info"></i>
+                    </div>
+                    <h3 class="card-title">{{ t.POLITICIANS_AGENDAS }}</h3>
+                    <p class="card-text">
+                        {{ t.TRACK_POLITICIANS_DESC }}
+                    </p>
+                    <a href="{% url 'politicians_list' %}" class="btn btn-info btn-lg">
+                        <i class="fas fa-user-tie me-2"></i>{{ t.VIEW_POLITICIANS }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Parliament Decisions and Politicians Activity Analysis Blocks -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-gavel fa-3x text-warning"></i>
+                    </div>
+                    <h3 class="card-title">{{ t.PARLIAMENT_DECISIONS }}</h3>
+                    <p class="card-text">
+                        {{ t.BROWSE_DECISIONS_DESC }}
+                    </p>
+                    <a href="{% url 'decisions_list' %}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-search me-2"></i>{{ t.EXPLORE_DECISIONS }}
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-chart-line fa-3x text-success"></i>
+                    </div>
+                    <h3 class="card-title">{{ t.POLITICIANS_ACTIVITY_ANALYSIS }}</h3>
+                    <p class="card-text">
+                        {{ t.POLITICIANS_ACTIVITY_ANALYSIS_DESC }}
+                    </p>
+                    <a href="{% url 'agenda_politicians_summary' %}" class="btn btn-success btn-lg">
+                        <i class="fas fa-chart-pie me-2"></i>{{ t.VIEW_ANALYSIS }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Overview -->
+<div class="container-fluid" style="background-color: var(--secondary-color); padding: 4rem 0;">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-12 mb-4">
+                <h2>{{ t.WHY_RIIGITODE }}</h2>
+                <p class="lead text-muted">{{ t.TRANSPARENCY_SUBTITLE }}</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="text-center">
+                    <i class="fas fa-search fa-2x text-primary mb-3"></i>
+                    <h4>{{ t.ADVANCED_SEARCH }}</h4>
+                    <p class="text-muted">{{ t.ADVANCED_SEARCH_DESC }}</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="text-center">
+                    <i class="fas fa-brain fa-2x text-success mb-3"></i>
+                    <h4>{{ t.AI_SUMMARIES }}</h4>
+                    <p class="text-muted">{{ t.AI_SUMMARIES_DESC }}</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="text-center">
+                    <i class="fas fa-clock fa-2x text-info mb-3"></i>
+                    <h4>{{ t.REAL_TIME_UPDATES }}</h4>
+                    <p class="text-muted">{{ t.REAL_TIME_UPDATES_DESC }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+    <!-- Date Range Information -->
+    {% if model_counts.first_speech_date and model_counts.last_speech_date %}
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-6">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                    <h4>{{ t.DATA_COVERAGE_PERIOD }}</h4>
+                    <div class="row">
+                        <div class="col-6">
+                            <h5>{{ model_counts.first_speech_date|date:"M j, Y" }}</h5>
+                            <p>{{ t.FIRST_SPEECH }}</p>
+                        </div>
+                        <div class="col-6">
+                            <h5>{{ model_counts.last_speech_date|date:"M j, Y" }}</h5>
+                            <p>{{ t.LAST_SPEECH }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Dynamic Statistics from StatisticsEntry -->
+    {% if statistics_entries %}
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-10">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                    <h3>{{ t.SYSTEM_STATISTICS }}</h3>
+                    <div class="row">
+                        {% for stat in statistics_entries %}
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="border border-light rounded p-2">
+                                <h4>
+                                    {{ stat.value|floatformat:0 }}
+                                    {% if stat.percentage %}
+                                        <small class="opacity-75">({{ stat.percentage }}%)</small>
+                                    {% endif %}
+                                </h4>
+                                <p class="mb-1"><strong>{{ stat.name }}</strong></p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Fallback: Original Summary Statistics -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ t.AI_SUMMARIES_AVAILABLE }}</h3>
+                    <div class="row">
+                        <div class="col-6">
+                            <h4>{{ model_counts.agendas_with_ai|default:0 }}</h4>
+                            <p>{{ t.AGENDA_SUMMARIES }}<br><small>({{ model_counts.agendas_ai_percentage|default:0 }}% {{ t.COVERAGE }})</small></p>
+                        </div>
+                        <div class="col-6">
+                            <h4>{{ model_counts.speeches_with_ai|default:0 }}</h4>
+                            <p>{{ t.SPEECH_SUMMARIES }}<br><small>({{ model_counts.speeches_ai_percentage|default:0 }}% {{ t.COVERAGE }})</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fallback: Translation Completion Statistics -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-language fa-2x mb-2"></i>
+                    <h3>{{ t.TRANSLATION_COMPLETION }}</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>{{ t.ENGLISH_TRANSLATIONS }}</h4>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p><strong>{{ model_counts.agendas_ai_en_count|default:0 }}</strong><br>
+                                    <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ model_counts.agendas_ai_en_percentage|default:0 }}%)</small></p>
+                                </div>
+                                <div class="col-6">
+                                    <p><strong>{{ model_counts.agendas_title_en_count|default:0 }}</strong><br>
+                                    <small>{{ t.TITLES_TRANSLATED }} ({{ model_counts.agendas_title_en_percentage|default:0 }}%)</small></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>{{ t.RUSSIAN_TRANSLATIONS }}</h4>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p><strong>{{ model_counts.agendas_ai_ru_count|default:0 }}</strong><br>
+                                    <small>{{ t.AI_SUMMARIES_TRANSLATED }} ({{ model_counts.agendas_ai_ru_percentage|default:0 }}%)</small></p>
+                                </div>
+                                <div class="col-6">
+                                    <p><strong>{{ model_counts.agendas_title_ru_count|default:0 }}</strong><br>
+                                    <small>{{ t.TITLES_TRANSLATED }} ({{ model_counts.agendas_title_ru_percentage|default:0 }}%)</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Agenda Items Breakdown -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-10">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-list-check fa-2x mb-2"></i>
+                    <h3>{{ t.AGENDA_ITEMS_BREAKDOWN }}</h3>
+                    <div class="row">
+                        <!-- Decisions Column -->
+                        <div class="col-md-6 mb-3">
+                            <div class="border border-dark rounded p-3 bg-light">
+                                <i class="fas fa-gavel fa-2x text-warning mb-2"></i>
+                                <h4>{{ model_counts.agenda_decisions_count|default:0 }}</h4>
+                                <p class="mb-2"><strong>{{ t.AGENDAS_WITH_DECISIONS }}</strong></p>
+                                <p class="mb-0"><small>({{ model_counts.agenda_decisions_percentage|default:0 }}% {{ t.COVERAGE }})</small></p>
+                                
+                                <!-- Decisions Translations -->
+                                <hr class="my-3">
+                                <h6>{{ t.DECISIONS_TRANSLATIONS }}</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="mb-0"><strong>{{ model_counts.agenda_decisions_en_count|default:0 }}</strong><br>
+                                        <small>EN: {{ model_counts.agenda_decisions_en_percentage|default:0 }}%</small></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="mb-0"><strong>{{ model_counts.agenda_decisions_ru_count|default:0 }}</strong><br>
+                                        <small>RU: {{ model_counts.agenda_decisions_ru_percentage|default:0 }}%</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Active Politicians Column -->
+                        <div class="col-md-6 mb-3">
+                            <div class="border border-dark rounded p-3 bg-light">
+                                <i class="fas fa-user-tie fa-2x text-warning mb-2"></i>
+                                <h4>{{ model_counts.agenda_active_politicians_count|default:0 }}</h4>
+                                <p class="mb-2"><strong>{{ t.AGENDAS_WITH_ACTIVE_POLITICIANS }}</strong></p>
+                                <p class="mb-0"><small>({{ model_counts.agenda_active_politicians_percentage|default:0 }}% {{ t.COVERAGE }})</small></p>
+                                
+                                <!-- Active Politicians Translations -->
+                                <hr class="my-3">
+                                <h6>{{ t.ACTIVE_POLITICIANS_TRANSLATIONS }}</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="mb-0"><strong>{{ model_counts.agenda_active_politicians_en_count|default:0 }}</strong><br>
+                                        <small>EN: {{ model_counts.agenda_active_politicians_en_percentage|default:0 }}%</small></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="mb-0"><strong>{{ model_counts.agenda_active_politicians_ru_count|default:0 }}</strong><br>
+                                        <small>RU: {{ model_counts.agenda_active_politicians_ru_percentage|default:0 }}%</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Politician Profiling Progress Chart -->
+    {% if politicians_for_chart %}
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-cog fa-2x text-warning mb-2"></i>
+                        <h3>{{ t.POLITICIAN_PROFILING_PROGRESS }}</h3>
+                        <p class="text-muted">{{ t.TOP_POLITICIANS_BY_PROFILING }}</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="profiling-chart-container">
+                                <canvas id="profilingChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <h6 class="mb-3"><i class="fas fa-list me-1"></i>{{ t.POLITICIANS }}</h6>
+                            <div class="politician-legend">
+                                {% for politician in politicians_for_chart %}
+                                <div class="politician-legend-item" onclick="window.location.href='{% url 'politician_detail' politician.pk %}'">
+                                    {% if politician.photo %}
+                                        <img src="{{ politician.photo.url }}" 
+                                             alt="{{ politician.full_name }}"
+                                             class="politician-photo-tiny">
+                                    {% else %}
+                                        <div class="photo-placeholder-tiny">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                    <a href="{% url 'politician_detail' politician.pk %}" class="politician-legend-name">
+                                        {{ politician.full_name }}
+                                    </a>
+                                    <span class="legend-percentage">{{ politician.profiling_percentage }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'politicians_list' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-users me-1"></i>{{ t.VIEW_ALL_POLITICIANS }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if politicians_for_chart %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('profilingChart').getContext('2d');
+    
+    // Prepare data for Chart.js
+    const chartData = [
+        {% for politician in politicians_for_chart %}
+        {
+            name: "{{ politician.full_name|escapejs }}",
+            percentage: {{ politician.profiling_percentage }},
+            profiledCount: {{ politician.profiles_already_profiled }},
+            requiredCount: {{ politician.profiles_required }},
+            politicianId: {{ politician.pk }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    const labels = chartData.map(item => item.name);
+    const data = chartData.map(item => item.percentage);
+    
+    // Set dynamic height based on number of politicians (20px per politician)
+    const chartContainer = document.querySelector('.profiling-chart-container');
+    const legendContainer = document.querySelector('.politician-legend');
+    const dynamicHeight = Math.max(400, chartData.length * 20); // Minimum 400px
+    chartContainer.style.height = dynamicHeight + 'px';
+    legendContainer.style.height = dynamicHeight + 'px';
+    
+    // Generate colors - gradient from red (0%) to green (100%)
+    const backgroundColors = data.map(percentage => {
+        if (percentage >= 70) return '#28a745'; // Green for high completion
+        if (percentage >= 40) return '#ffc107'; // Yellow for medium completion  
+        return '#dc3545'; // Red for low completion
+    });
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ t.PROFILING_PERCENTAGE }}',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: backgroundColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y', // This makes it a horizontal bar chart
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: '{{ t.PROFILING_PERCENTAGE }}'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '{{ t.POLITICIANS }}'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const dataPoint = chartData[context.dataIndex];
+                            return [
+                                `${dataPoint.name}: ${dataPoint.percentage}%`,
+                                `${dataPoint.profiledCount}/${dataPoint.requiredCount} profiles completed`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            onClick: function(event, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const politicianId = chartData[index].politicianId;
+                    window.location.href = `/politician/${politicianId}/`;
+                }
+            }
+        }
+    });
+    
+    // Add hover cursor
+    ctx.canvas.addEventListener('mousemove', function(event) {
+        const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+        ctx.canvas.style.cursor = points.length > 0 ? 'pointer' : 'default';
+    });
+});
+</script>
+{% endif %}
+
+{% endblock %}

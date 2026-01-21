@@ -1,0 +1,8 @@
+media
+local_translation_service/__pycache__
+db_dump_*.sql
+last_dump.sql.gz
+.env
+*.env
+.env.local
+.env.*.local

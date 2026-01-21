@@ -1,0 +1,297 @@
+{% load localization %}{% load static %}
+<!DOCTYPE html>
+<html lang="{{ current_language|default:'et' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ t.SITE_NAME }} - {{ t.SITE_TAGLINE }}{% endblock %}</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    {% block meta_og_title %}<meta property="og:title" content="{{ t.SITE_NAME }} - {{ t.SITE_TAGLINE }}">{% endblock %}
+    {% block meta_og_description %}<meta property="og:description" content="{{ t.EXPLORE_PARLIAMENT_DESC }}">{% endblock %}
+    <meta property="og:image" content="{% block og_image %}{% endblock %}">
+    <meta property="og:site_name" content="{{ t.SITE_NAME }}">
+    <meta property="og:locale" content="{% if current_language == 'et' %}et_EE{% elif current_language == 'en' %}en_US{% elif current_language == 'ru' %}ru_RU{% else %}et_EE{% endif %}">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
+    <meta name="twitter:url" content="{% block twitter_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    {% block meta_twitter_title %}<meta name="twitter:title" content="{{ t.SITE_NAME }} - {{ t.SITE_TAGLINE }}">{% endblock %}
+    {% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.EXPLORE_PARLIAMENT_DESC }}">{% endblock %}
+    <meta name="twitter:image" content="{% block twitter_image %}{% endblock %}">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #f8f9fa;
+            --accent-color: #17a2b8;
+            --text-color: #343a40;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .hero-section h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .hero-section .slogan {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            font-style: italic;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1e3d6f;
+            border-color: #1e3d6f;
+        }
+        
+        .footer {
+            background-color: var(--secondary-color);
+            border-top: 1px solid var(--border-color);
+            margin-top: 3rem;
+            padding: 2rem 0;
+        }
+        
+        .search-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .agenda-item {
+            border-left: 4px solid var(--primary-color);
+            background: #fafafa;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .politician-card {
+            border-left: 4px solid var(--accent-color);
+            background: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .breadcrumb {
+            background-color: transparent;
+            padding: 1rem 0;
+        }
+        
+        .speech-item {
+            border-left: 4px solid #417690;
+            background: #fafafa;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .speech-item:nth-child(even) {
+            background: #f0f0f0;
+        }
+        
+        .ai-summary {
+            background: #e8f5e8;
+            border-left: 3px solid #4caf50;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .ai-agenda-summary {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        /* Accordion Styles */
+        .accordion-header {
+            width: 100%;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        
+        .accordion-header:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .accordion-content {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            background: #ffffff;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .accordion-content .speech-text {
+            padding: 15px;
+            margin: 0;
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .accordion-icon {
+            font-size: 12px;
+            transition: transform 0.2s ease;
+            color: #6c757d;
+        }
+        
+        .accordion-header[aria-expanded="true"] .accordion-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: var(--primary-color);">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-gavel me-2"></i>{{ t.SITE_NAME }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home me-1"></i>{{ t.HOME }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'plenary_sessions_list' %}">
+                            <i class="fas fa-calendar-alt me-1"></i>{{ t.PLENARY_SESSIONS }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'decisions_list' %}">
+                            <i class="fas fa-gavel me-1"></i>{{ t.PARLIAMENT_DECISIONS }}
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="politiciansDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-users me-1"></i>{{ t.POLITICIANS }}
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="politiciansDropdown">
+                            <li><a class="dropdown-item" href="{% url 'politicians_list' %}">
+                                <i class="fas fa-list me-1"></i>{{ t.ALL_POLITICIANS }}
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'politicians_agendas_list' %}">
+                                <i class="fas fa-calendar-check me-1"></i>{{ t.POLITICIANS_AGENDAS }}
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'agenda_politicians_summary' %}">
+                                <i class="fas fa-chart-line me-1"></i>{{ t.POLITICIANS_ACTIVITY_ANALYSIS }}
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% for page in menu_pages %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'text_page' page.slug %}">
+                            <i class="fas fa-info-circle me-1"></i>{{ page|localized_title:current_language }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-globe me-1"></i>{{ t.LANGUAGE }}
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                            {% for lang in supported_languages %}
+                            <li><a class="dropdown-item" href="?lang={{ lang.code }}">
+                                <i class="fas fa-flag me-1"></i>{{ lang.name }}
+                                {% if lang.code == current_language %}<i class="fas fa-check ms-2 text-success"></i>{% endif %}
+                            </a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>{{ t.SITE_NAME }}</h5>
+                    <p class="text-muted">{{ t.SITE_TAGLINE }}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="text-muted">
+                        <small>&copy; {% now "Y" %} {{ t.SITE_NAME }}. {{ t.COPYRIGHT }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

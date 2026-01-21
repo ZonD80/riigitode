@@ -1,0 +1,224 @@
+{% extends 'parliament_speeches/base.html' %}
+{% load localization %}
+
+{% block title %}{{ politician.full_name }} - {{ target_date|date:"F d, Y" }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}profile{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ politician.full_name }} - {{ target_date|date:"F d, Y" }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.AGENDA_ITEMS }}: {{ politician.full_name }} - {{ target_date|date:"F d, Y" }}.">{% endblock %}
+{% block og_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ politician.full_name }} - {{ target_date|date:"F d, Y" }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.AGENDA_ITEMS }}: {{ politician.full_name }} - {{ target_date|date:"F d, Y" }}.">{% endblock %}
+{% block twitter_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politicians_list' %}">{{ t.POLITICIANS }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_detail' politician.pk %}">{{ politician.full_name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_activity_graph' politician.pk %}">{{ t.ACTIVITY_GRAPH }}</a></li>
+            <li class="breadcrumb-item active">{{ target_date|date:"F d, Y" }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            {% if politician.photo_big %}
+                                <img src="{{ politician.photo_big.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-medium">
+                            {% elif politician.photo %}
+                                <img src="{{ politician.photo.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-medium">
+                            {% else %}
+                                <div class="politician-photo-medium-placeholder">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h1 class="mb-3">
+                                <i class="fas fa-calendar-day me-2"></i>
+                                {{ politician.full_name }}
+                            </h1>
+                            <h2 class="h4 text-muted mb-3">
+                                {{ t.ACTIVITY_ON }} {{ target_date|date:"F d, Y" }}
+                            </h2>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-primary">{{ agendas_with_details|length }}</div>
+                                        <div class="stat-label">{{ t.AGENDA_ITEMS }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-success">{{ total_speaking_time_formatted|default:"0s" }}</div>
+                                        <div class="stat-label">{{ t.TOTAL_SPEAKING_TIME }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-info">{{ total_speeches }}</div>
+                                        <div class="stat-label">{{ t.TOTAL_SPEECHES }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agendas List -->
+    {% if agendas_with_details %}
+        <div class="row">
+            <div class="col-12">
+                <h3 class="mb-3">
+                    <i class="fas fa-list me-2"></i>
+                    {{ t.AGENDA_PARTICIPATIONS }}
+                </h3>
+            </div>
+        </div>
+
+        {% for item in agendas_with_details %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <a href="{% url 'agenda_detail' item.agenda.pk %}" 
+                                   class="text-decoration-none">
+                                    {% localized_title_tag item.agenda %}
+                                </a>
+                                {% if item.agenda.is_incomplete %}
+                                    <span class="badge bg-warning text-dark ms-2" title="{{ t.INCOMPLETE_STENOGRAM }}">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ t.INCOMPLETE }}
+                                    </span>
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ item.agenda.date|date:"H:i" }}
+                                <span class="ms-3">
+                                    <i class="fas fa-building me-1"></i>
+                                    {% localized_title_tag item.agenda.plenary_session %}
+                                </span>
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <div class="text-end">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-microphone me-1"></i>
+                                    {{ item.speech_count }} speech{{ item.speech_count|pluralize:"es" }}
+                                </span>
+                                {% if item.speaking_time_formatted %}
+                                    <br><small class="text-info mt-1 d-block">
+                                        <i class="fas fa-stopwatch me-1"></i>
+                                        {{ t.SPEAKING_TIME_LABEL }}: {{ item.speaking_time_formatted }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if item.agenda.structured_summary %}
+                        <div class="p-3 bg-light border-start border-success border-3 mb-3">
+                            <h6 class="text-success mb-2">
+                                {{ t.SUMMARY }}
+                            </h6>
+                            <p class="mb-0" style="white-space: pre-wrap;">{% localized_ai_summary_tag item.agenda %}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'agenda_detail' item.agenda.pk %}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>{{ t.VIEW_FULL_AGENDA }}
+                        </a>
+                        <a href="{% url 'agenda_detail' item.agenda.pk %}?politician={{ politician.pk }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-user-tie me-1"></i>{{ t.FOCUS_ON }} {{ politician.full_name }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h3>{{ t.NO_ACTIVITY_FOUND }}</h3>
+            <p class="text-muted">{{ politician.full_name }} {{ t.NO_RECORDED_SPEAKING_ACTIVITY_ON_DATE }} {{ target_date|date:"F d, Y" }}.</p>
+        </div>
+    {% endif %}
+
+    <!-- Navigation Buttons -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <a href="{% url 'politician_activity_graph' politician.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-chart-line me-1"></i>{{ t.BACK_TO }} {{ t.ACTIVITY_GRAPH }}
+                </a>
+                <a href="{% url 'politician_detail' politician.pk %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user-tie me-1"></i>{{ t.BACK_TO_PROFILE }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.politician-photo-medium {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.politician-photo-medium-placeholder {
+    width: 100px;
+    height: 100px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+</style>
+{% endblock %}

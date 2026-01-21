@@ -1,0 +1,314 @@
+{% extends 'parliament_speeches/base.html' %}
+
+{% block title %}{{ politician.full_name }} - {{ t.ACTIVITY_GRAPH }} - {{ t.SITE_NAME }}{% endblock %}
+
+{% block og_type %}profile{% endblock %}
+{% block meta_og_title %}<meta property="og:title" content="{{ politician.full_name }} - {{ t.ACTIVITY_GRAPH }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_og_description %}<meta property="og:description" content="{{ t.ACTIVITY_GRAPH }}: {{ politician.full_name }}. {% if politician.formatted_total_time %}{{ t.TOTAL_SPEAKING_TIME }}: {{ politician.formatted_total_time }}.{% endif %}">{% endblock %}
+{% block og_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block meta_twitter_title %}<meta name="twitter:title" content="{{ politician.full_name }} - {{ t.ACTIVITY_GRAPH }} - {{ t.SITE_NAME }}">{% endblock %}
+{% block meta_twitter_description %}<meta name="twitter:description" content="{{ t.ACTIVITY_GRAPH }}: {{ politician.full_name }}. {% if politician.formatted_total_time %}{{ t.TOTAL_SPEAKING_TIME }}: {{ politician.formatted_total_time }}.{% endif %}">{% endblock %}
+{% block twitter_image %}{% if politician.photo_big %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo_big.url }}{% elif politician.photo %}{{ request.scheme }}://{{ request.get_host }}{{ politician.photo.url }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{{ t.HOME }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politicians_list' %}">{{ t.POLITICIANS }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'politician_detail' politician.pk %}">{{ politician.full_name }}</a></li>
+            <li class="breadcrumb-item active">{{ t.ACTIVITY_GRAPH }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            {% if politician.photo_big %}
+                                <img src="{{ politician.photo_big.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-medium">
+                            {% elif politician.photo %}
+                                <img src="{{ politician.photo.url }}" 
+                                     alt="{{ politician.full_name }}"
+                                     class="img-fluid rounded politician-photo-medium">
+                            {% else %}
+                                <div class="politician-photo-medium-placeholder">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h1 class="mb-3">
+                                <i class="fas fa-chart-line me-2"></i>
+                                {{ politician.full_name }} - {{ t.ACTIVITY_GRAPH }}
+                            </h1>
+                            
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-primary">{{ total_days_active }}</div>
+                                        <div class="stat-label">{{ t.ACTIVE_DAYS }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-success">{{ total_minutes }}m</div>
+                                        <div class="stat-label">{{ t.TOTAL_SPEAKING_TIME }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-info">{{ avg_minutes_per_active_day }}m</div>
+                                        <div class="stat-label">{{ t.AVG_PER_ACTIVE_DAY }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-number text-warning">{{ max_minutes_day }}m</div>
+                                        <div class="stat-label">{{ t.MAX_IN_ONE_DAY }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-area me-2"></i>
+                        {{ t.DAILY_SPEAKING_ACTIVITY }}
+                    </h5>
+                    <small class="text-muted">{{ t.SPEAKING_TIME_MINUTES_PER_DAY }}</small>
+                </div>
+                <div class="card-body">
+                    {% if chart_data %}
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span class="text-danger">{{ t.RED_POINTS }}</span> {{ t.MARK_PEAKS_VALLEYS }}
+                            </small>
+                        </div>
+                        <canvas id="activityChart"></canvas>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h4>{{ t.NO_ACTIVITY_DATA }}</h4>
+                            <p class="text-muted">{{ t.NO_RECORDED_SPEAKING_ACTIVITY }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'politician_detail' politician.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>{{ t.BACK_TO_PROFILE }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.politician-photo-medium {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.politician-photo-medium-placeholder {
+    width: 100px;
+    height: 100px;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+#activityChart {
+    width: 100% !important;
+    height: 400px !important;
+}
+</style>
+
+{% if chart_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const chartData = {{ chart_data_json|safe }};
+    
+    // Prepare data for Chart.js
+    const labels = chartData.map(item => item.date);
+    const data = chartData.map(item => item.minutes);
+    
+    // Create different point styles for significant vs regular points
+    const pointBackgroundColors = chartData.map(item => 
+        item.is_significant ? 'rgb(255, 99, 132)' : 'rgb(54, 162, 235)'
+    );
+    const pointBorderColors = chartData.map(item => 
+        item.is_significant ? '#fff' : '#fff'
+    );
+    const pointRadii = chartData.map(item => 
+        item.is_significant ? 6 : 3
+    );
+    const pointHoverRadii = chartData.map(item => 
+        item.is_significant ? 10 : 5
+    );
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ t.SPEAKING_TIME_MINUTES }}',
+                data: data,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1,
+                pointBackgroundColor: pointBackgroundColors,
+                pointBorderColor: pointBorderColors,
+                pointBorderWidth: 2,
+                pointRadius: pointRadii,
+                pointHoverRadius: pointHoverRadii,
+                pointHoverBackgroundColor: pointBackgroundColors,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        parser: 'yyyy-MM-dd',
+                        displayFormats: {
+                            day: 'MMM dd',
+                            month: 'MMM yyyy'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '{{ t.DATE }}'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '{{ t.SPEAKING_TIME_MINUTES }}'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + 'm';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const dataPoint = chartData[context.dataIndex];
+                            const agendaCount = dataPoint.agendas.length;
+                            const tooltips = ['{{ t.SPEAKING_TIME_TOOLTIP }}: ' + context.parsed.y.toFixed(1) + ' minutes'];
+                            
+                            if (dataPoint.is_significant) {
+                                tooltips.push(agendaCount + ' agenda' + (agendaCount !== 1 ? 's' : '') + ' (click to view)');
+                            }
+                            
+                            return tooltips;
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            onClick: function(event, elements) {
+                if (elements.length > 0) {
+                    const dataIndex = elements[0].index;
+                    const dataPoint = chartData[dataIndex];
+                    
+                    // Only allow clicking on significant points
+                    if (dataPoint.is_significant) {
+                        // Navigate to daily agendas page
+                        const politicianId = {{ politician.pk }};
+                        const dateStr = dataPoint.date;
+                        window.location.href = `/politician/${politicianId}/activity/${dateStr}/`;
+                    }
+                }
+            }
+        }
+    });
+    
+    // Add dynamic cursor behavior
+    ctx.canvas.addEventListener('mousemove', function(event) {
+        const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+        
+        if (points.length > 0) {
+            const dataIndex = points[0].index;
+            const dataPoint = chartData[dataIndex];
+            
+            // Only show pointer cursor for significant points
+            ctx.canvas.style.cursor = dataPoint.is_significant ? 'pointer' : 'default';
+        } else {
+            ctx.canvas.style.cursor = 'default';
+        }
+    });
+});
+</script>
+
+<!-- Chart.js time adapter -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+{% endif %}
+
+{% endblock %}

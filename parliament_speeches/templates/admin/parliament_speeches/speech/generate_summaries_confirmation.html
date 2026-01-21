@@ -1,0 +1,128 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='parliament_speeches' %}">Parliament Speeches</a>
+    &rsaquo; <a href="{% url 'admin:parliament_speeches_speech_changelist' %}">Speeches</a>
+    &rsaquo; Generate AI Summaries
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module">
+        <div class="results">
+            <div class="summary-header" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border: 1px solid #417690; border-radius: 4px;">
+                <h2 style="margin: 0 0 10px 0; color: #417690;">Generate AI Summaries</h2>
+                <div class="summary-info">
+                    <strong>Total speeches to process:</strong> {{ total_count }}<br>
+                    <strong>Estimated time:</strong> ~{{ total_count|floatformat:0 }} minutes (1 minute per speech)<br>
+                    <strong>API cost estimate:</strong> ~${{ total_count|floatformat:2 }} USD
+                </div>
+            </div>
+            
+            <div class="warning-notice" style="margin-bottom: 20px; padding: 15px; background: #ffeaa7; border: 1px solid #fdcb6e; border-radius: 4px;">
+                <h3 style="margin: 0 0 10px 0; color: #e17055;">⚠️ Important Notice</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>This will generate AI summaries using the configured AI provider (Claude or Ollama)</li>
+                    <li>Processing will take approximately 1 minute per speech</li>
+                    <li>API costs depend on the provider (Claude: ~$0.01 per call, Ollama: free if local)</li>
+                    <li>You can monitor progress in the terminal/logs</li>
+                    <li>Process can be interrupted if needed</li>
+                </ul>
+            </div>
+            
+            {% if speeches %}
+                <div class="preview-section" style="margin-bottom: 20px;">
+                    <h3>Preview of Speeches to Process:</h3>
+                    <table class="table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f8f8;">
+                                <th style="padding: 8px; border: 1px solid #ddd;">Speaker</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">Date</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">Text Preview</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for speech in speeches %}
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">
+                                        {{ speech.speaker }}
+                                        {% if speech.politician %}
+                                            <br><small style="color: #666;">({{ speech.politician.full_name }})</small>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">{{ speech.date|date:"Y-m-d H:i" }}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">{{ speech.text|truncatewords:15 }}...</td>
+                                </tr>
+                            {% endfor %}
+                            {% if total_count > 20 %}
+                                <tr>
+                                    <td colspan="3" style="padding: 8px; border: 1px solid #ddd; text-align: center; font-style: italic; color: #666;">
+                                        ... and {{ total_count|add:"-20" }} more speeches
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+            
+            <div class="command-instructions" style="margin-bottom: 20px; padding: 15px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px;">
+                <h3 style="margin: 0 0 10px 0;">How to Generate Summaries:</h3>
+                <p>Run the following command in your terminal:</p>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0;">
+                    <code>docker-compose exec web python manage.py generate_ai_summaries --limit {{ total_count }}</code>
+                </div>
+                
+                <h4>Additional Options:</h4>
+                <ul style="font-family: monospace; font-size: 0.9em;">
+                    <li><code>--dry-run</code> - Preview without generating summaries</li>
+                    <li><code>--limit 5</code> - Process only 5 speeches</li>
+                    <li><code>--overwrite</code> - Replace existing summaries</li>
+                    <li><code>--delay 2.0</code> - Add 2 second delay between API calls</li>
+                    <li><code>--speech-id 123</code> - Process specific speech only</li>
+                </ul>
+                
+                <h4>Examples:</h4>
+                <div style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; font-size: 0.9em;">
+                    # Preview what would be processed<br>
+                    <code>docker-compose exec web python manage.py generate_ai_summaries --dry-run --limit 5</code><br><br>
+                    
+                    # Process 10 speeches with 1.5 second delay<br>
+                    <code>docker-compose exec web python manage.py generate_ai_summaries --limit 10 --delay 1.5</code><br><br>
+                    
+                    # Process specific speech<br>
+                    <code>docker-compose exec web python manage.py generate_ai_summaries --speech-id 456</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="submit-row" style="margin-top: 20px;">
+        <a href="{% url 'admin:parliament_speeches_speech_changelist' %}" class="default">← Back to Speeches</a>
+    </div>
+</div>
+
+<style>
+.table th, .table td {
+    text-align: left;
+    vertical-align: top;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+code {
+    background: #f4f4f4;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+</style>
+{% endblock %}

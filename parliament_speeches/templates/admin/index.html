@@ -1,0 +1,70 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+    {% if app_list %}
+        {% for app in app_list %}
+            <div class="app-{{ app.app_label }} module">
+                <table>
+                    <caption>
+                        <a href="{{ app.app_url }}" class="section" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">{{ app.name }}</a>
+                    </caption>
+                    {% for model in app.models %}
+                        <tr class="model-{{ model.object_name|lower }}">
+                            {% if model.admin_url %}
+                                <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                            {% else %}
+                                <th scope="row">{{ model.name }}</th>
+                            {% endif %}
+
+                            {% if model.add_url %}
+                                <td><a href="{{ model.add_url }}" class="addlink">{% translate 'Add' %}</a></td>
+                            {% else %}
+                                <td>&nbsp;</td>
+                            {% endif %}
+
+                            {% if model.admin_url %}
+                                {% if model.object_name == 'Politician' and model_counts.politicians %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.politicians }})</a></td>
+                                {% elif model.object_name == 'Faction' and model_counts.factions %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.factions }})</a></td>
+                                {% elif model.object_name == 'PoliticianFaction' and model_counts.politician_factions %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.politician_factions }})</a></td>
+                                {% elif model.object_name == 'PlenarySession' and model_counts.plenary_sessions %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.plenary_sessions }})</a></td>
+                                {% elif model.object_name == 'AgendaItem' and model_counts.agenda_items %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.agenda_items }})</a></td>
+                                {% elif model.object_name == 'Speech' and model_counts.speeches %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %} ({{ model_counts.speeches }})</a></td>
+                                {% else %}
+                                    <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %}</a></td>
+                                {% endif %}
+                            {% else %}
+                                <td>&nbsp;</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>{% translate "You don't have permission to view or edit anything." %}</p>
+    {% endif %}
+</div>
+
+{% if model_counts %}
+<div class="module" style="margin-top: 20px;">
+    <h2>Database Statistics</h2>
+    <table>
+        <tr><th>Model</th><th>Count</th></tr>
+        <tr><td>Politicians</td><td>{{ model_counts.politicians }}</td></tr>
+        <tr><td>Factions</td><td>{{ model_counts.factions }}</td></tr>
+        <tr><td>Politician Faction Memberships</td><td>{{ model_counts.politician_factions }}</td></tr>
+        <tr><td>Plenary Sessions</td><td>{{ model_counts.plenary_sessions }}</td></tr>
+        <tr><td>Agenda Items</td><td>{{ model_counts.agenda_items }}</td></tr>
+        <tr><td>Speeches</td><td>{{ model_counts.speeches }}</td></tr>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
