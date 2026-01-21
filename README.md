@@ -669,6 +669,8 @@ The project follows Django conventions and PEP 8 style guidelines.
 
 ## License
 
+This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
+
 This project is for educational and research purposes, using public data from the Estonian Parliament API.
 
 ## Acknowledgments
